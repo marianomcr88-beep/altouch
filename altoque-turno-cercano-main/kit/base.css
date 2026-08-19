@@ -1,0 +1,462 @@
+/* ==========================================================================
+   AL TOQUE · Kit Base v1
+   Sistema de diseño para el ecosistema de microherramientas.
+   Importar en cada herramienta: <link rel="stylesheet" href="/kit/base.css">
+   ========================================================================== */
+
+/* ---------- Tokens de color ---------- */
+:root {
+  --bg-deep: #fafafa;
+  --bg-panel: #ffffff;
+  --bg-panel-2: #f5f5f5;
+  --line: #e2e2e2;
+  --line-strong: #cccccc;
+  --accent: #10b981;         /* verde esmeralda — color institucional */
+  --accent-light: #d1fae5;
+  --accent-dark: #047857;
+  --text: #1a1a1a;
+  --text-muted: #6b7280;
+  --text-inv: #ffffff;
+  --amber: #f59e0b;
+  --amber-light: #fef3c7;
+  --danger: #ef4444;
+  --danger-light: #fee2e2;
+  --success: #10b981;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+  --shadow: 0 4px 12px rgba(0,0,0,.08);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', var(--font-sans);
+  --transition: .18s ease;
+}
+
+/* ---------- Modo oscuro ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-deep: #0a1f1a;
+    --bg-panel: #0f2e25;
+    --bg-panel-2: #133a30;
+    --line: #1f4a3f;
+    --line-strong: #2a5e4f;
+    --accent: #49ffa3;
+    --accent-light: rgba(73,255,163,.12);
+    --accent-dark: #2c8a63;
+    --text: #f2f7f4;
+    --text-muted: #9fc4b6;
+    --text-inv: #04241a;
+    --amber: #ffb648;
+    --amber-light: rgba(255,182,72,.12);
+    --danger: #ff6b6b;
+    --danger-light: rgba(255,107,107,.1);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.2);
+    --shadow: 0 4px 12px rgba(0,0,0,.3);
+  }
+}
+
+/* ---------- Color temático por herramienta ----------
+   Cada herramienta puede sobrescribir --tool-color y --tool-color-light
+   en su propio <style> para tener su color distintivo.
+   Si no se definen, usa el accent institucional.
+   -------------------------------------------------------- */
+:root {
+  --tool-color: var(--accent);
+  --tool-color-light: var(--accent-light);
+}
+
+/* ---------- Reset mínimo ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Layout ---------- */
+.at-wrap {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 18px 16px 40px;
+}
+
+/* ---------- Tipografía ---------- */
+.at-h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: .2px;
+  color: var(--text);
+}
+
+.at-h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.at-h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.at-muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------- Header de herramienta ---------- */
+.at-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 2px 16px;
+}
+
+.at-header-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: var(--tool-color-light);
+  color: var(--tool-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .at-header-icon {
+    background: var(--tool-color-light);
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--tool-color) 50%, transparent));
+  }
+}
+
+.at-header-text p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------- Panel / Card ---------- */
+.at-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Botones ---------- */
+.at-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+  text-decoration: none;
+  text-align: center;
+}
+
+.at-btn:active { transform: scale(.98); }
+.at-btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.at-btn[disabled] { opacity: .5; cursor: default; pointer-events: none; }
+
+.at-btn-primary {
+  background: var(--tool-color);
+  color: var(--text-inv);
+}
+
+.at-btn-primary:hover {
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--tool-color) 35%, transparent);
+}
+
+.at-btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.at-btn-secondary:hover {
+  border-color: var(--line-strong);
+}
+
+.at-btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 11px 16px;
+  font-size: 14px;
+}
+
+/* ---------- Badge ---------- */
+.at-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--amber-light);
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  color: var(--amber);
+}
+
+.at-badge-accent {
+  background: var(--tool-color-light);
+  border-color: color-mix(in srgb, var(--tool-color) 40%, transparent);
+  color: var(--tool-color);
+}
+
+.at-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.at-badge .dot.pulse {
+  animation: at-pulse 2s ease-in-out infinite;
+}
+
+@keyframes at-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+/* ---------- Métrica ---------- */
+.at-metrics {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.at-metric {
+  background: var(--bg-panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.at-metric-num {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tool-color);
+}
+
+.at-metric-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+/* ---------- Item de lista ---------- */
+.at-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  background: var(--bg-panel-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.at-item:hover { background: color-mix(in srgb, var(--bg-panel-2) 80%, var(--tool-color) 5%); }
+.at-item:active { transform: scale(.99); }
+.at-item.active { border-color: color-mix(in srgb, var(--tool-color) 50%, transparent); background: var(--tool-color-light); }
+.at-item.highlight { border-color: color-mix(in srgb, var(--amber) 50%, transparent); background: var(--amber-light); }
+
+/* ---------- Desplegable ---------- */
+.at-details {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.at-details summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.at-details summary::-webkit-details-marker { display: none; }
+.at-details .chev { transition: transform .2s ease; color: var(--text-muted); }
+.at-details[open] .chev { transform: rotate(180deg); }
+
+.at-details-body {
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+/* ---------- Status / spinner ---------- */
+.at-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  justify-content: center;
+}
+
+.at-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--tool-color);
+  animation: at-spin .8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes at-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Error ---------- */
+.at-error {
+  background: var(--danger-light);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  color: var(--danger);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+}
+
+/* ---------- Footer / crédito ---------- */
+.at-footer {
+  margin-top: 18px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  text-align: center;
+  padding: 0 10px;
+}
+
+.at-credit {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--line);
+  text-align: center;
+}
+
+.at-credit-made {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.at-credit-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--tool-color);
+}
+
+.at-credit-tag {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.at-credit-links {
+  margin-top: 8px;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.at-credit-links a {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---------- Row de botones ---------- */
+.at-row {
+  display: flex;
+  gap: 10px;
+}
+
+.at-row > * { flex: 1; }
+
+/* ---------- Refresh tag ---------- */
+.at-refresh-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0 0 14px 2px;
+}
+
+.at-refresh-tag .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.at-refresh-tag.live .dot {
+  background: var(--tool-color);
+  box-shadow: 0 0 6px var(--tool-color);
+}
+
+/* ---------- Utilidades ---------- */
+.at-text-center { text-align: center; }
+.at-mb-0 { margin-bottom: 0; }
+.at-mb-sm { margin-bottom: 8px; }
+.at-mb { margin-bottom: 14px; }
+.at-mt { margin-top: 14px; }
+.at-hidden { display: none !important; }
+
+/* ---------- Reducir movimiento ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .at-spinner, .dot.pulse { animation: none !important; }
+}
