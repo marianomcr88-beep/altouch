@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0C1A24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="altouch">
+
+<title>altouch — soluciones de bolsillo</title>
+<meta name="description" content="Apps chicas y gratuitas para resolver algo puntual. Sin cuenta, sin recolectar datos: se abren y se usan.">
+
+<!-- Open Graph / redes — reemplazar og:url por el dominio final y sumar og:image (1200×630) cuando exista -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="altouch — soluciones de bolsillo">
+<meta property="og:description" content="Apps chicas y gratuitas para resolver algo puntual. Sin cuenta, sin recolectar datos: se abren y se usan.">
+<meta property="og:url" content="https://altouch.com.ar/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://altouch.com.ar/">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='52' y2='52'%3E%3Cstop stop-color='%23FFB265'/%3E%3Cstop offset='.55' stop-color='%23FF6B35'/%3E%3Cstop offset='1' stop-color='%23FF3D57'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='52' height='52' rx='14.56' fill='%230C1A24'/%3E%3Ccircle cx='19' cy='26' r='5.5' fill='url(%23g)'/%3E%3Cpath d='M16.92 14.18 A12 12 0 1 1 16.92 37.82' stroke='url(%23g)' stroke-width='4.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 52'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='52' y2='52'%3E%3Cstop stop-color='%23FFB265'/%3E%3Cstop offset='.55' stop-color='%23FF6B35'/%3E%3Cstop offset='1' stop-color='%23FF3D57'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='52' height='52' rx='14.56' fill='%230C1A24'/%3E%3Ccircle cx='19' cy='26' r='5.5' fill='url(%23g)'/%3E%3Cpath d='M16.92 14.18 A12 12 0 1 1 16.92 37.82' stroke='url(%23g)' stroke-width='4.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "altouch — apps",
+  "itemListElement": [
+    {"@type":"ListItem","position":1,"item":{"@type":"SoftwareApplication","name":"NMCLB","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://altouch.com.ar/nmclb","offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"}}},
+    {"@type":"ListItem","position":2,"item":{"@type":"SoftwareApplication","name":"CryptoGest","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://altouch.com.ar/cryptogest","offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"}}},
+    {"@type":"ListItem","position":3,"item":{"@type":"SoftwareApplication","name":"Findes","applicationCategory":"LifestyleApplication","operatingSystem":"Web","url":"https://altouch.com.ar/findes","offers":{"@type":"Offer","price":"0","priceCurrency":"ARS"}}}
+  ]
+}
+</script>
+
+<!--
+  Analytics: todavía sin activar (cero requests a terceros por ahora).
+  Cuando se decida, sumar acá algo respetuoso de privacidad, sin cookies
+  ni tracking cross-site — por ejemplo Plausible o Umami self-hosted:
+  <script defer data-domain="altouch.com.ar" src="https://TU-INSTANCIA/script.js"></script>
+-->
+
+<style>
+:root{
+  --bg-0:#0C1A24; --bg-1:#1A2B3C; --bg-2:#22384B;
+  --border:rgba(255,255,255,.12); --border-2:rgba(255,255,255,.22);
+  --text:#FFFFFF; --dim:rgba(255,255,255,.62); --faint:rgba(255,255,255,.38);
+  --grad-practicas:linear-gradient(135deg,#FFB265 0%,#FF6B35 55%,#FF3D57 100%);
+  --grad-ludicas:linear-gradient(135deg,#FF8FA8 0%,#E5527E 55%,#A63D8F 100%);
+  --accent:#FF6B35;
+  --r:14px;
+  --font:'M PLUS Rounded 1c',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  background:var(--bg-0);
+  color:var(--text);
+  font-family:var(--font);
+  -webkit-tap-highlight-color:transparent;
+  min-height:100dvh;
+}
+a{color:inherit;text-decoration:none;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px;}
+
+#page{
+  max-width:720px;
+  margin:0 auto;
+  padding:56px 22px 40px;
+}
+
+/* ── hero ── */
+.hero{display:flex;flex-direction:column;align-items:flex-start;gap:18px;margin-bottom:8px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .wordmark{font-weight:800;font-size:19px;letter-spacing:-.02em;}
+.symbol .dot{opacity:0;transform:scale(.4);transform-origin:26px 26px;animation:pop .35s .05s cubic-bezier(.34,1.56,.64,1) forwards;}
+.symbol .wave1{stroke-dasharray:80;stroke-dashoffset:80;animation:draw .8s .18s cubic-bezier(.2,.8,.2,1) forwards;}
+.symbol .wave2{stroke-dasharray:130;stroke-dashoffset:130;animation:draw 1s .32s cubic-bezier(.2,.8,.2,1) forwards;}
+@keyframes pop{to{opacity:1;transform:scale(1)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){
+  .symbol .dot{animation:none;opacity:1;transform:none}
+  .symbol .wave1,.symbol .wave2{animation:none;stroke-dashoffset:0}
+}
+
+.eyebrow{
+  font-family:var(--mono);font-weight:600;font-size:11px;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--faint);
+}
+.thesis{
+  font-weight:800;font-size:clamp(28px,7vw,38px);letter-spacing:-.04em;line-height:1.08;
+}
+.lead{font-size:15px;color:var(--dim);max-width:46ch;line-height:1.5;}
+
+/* ── categorías ── */
+.category{margin-top:44px;}
+.cat-head{margin-bottom:16px;}
+.cat-title{font-weight:700;font-size:20px;}
+.cat-sub{font-size:13px;color:var(--faint);margin-top:2px;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:12px;
+}
+
+.tile{
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  background:var(--bg-1);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:16px;
+  transition:transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.tile:hover,.tile:focus-visible{
+  transform:translateY(-2px);
+  border-color:var(--border-2);
+  background:var(--bg-2);
+}
+.tile .icon{width:44px;height:44px;flex-shrink:0;}
+.tile .body{min-width:0;}
+.tile .name{font-weight:700;font-size:16px;margin-bottom:3px;}
+.tile .blurb{font-size:13px;color:var(--dim);line-height:1.4;}
+
+/* placeholder de próxima app — sin link, más tenue */
+.tile.soon{opacity:.5;cursor:default;}
+.tile.soon:hover{transform:none;border-color:var(--border);background:var(--bg-1);}
+
+/* ── footer ── */
+footer{
+  margin-top:64px;
+  padding-top:24px;
+  border-top:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.foot-brand{display:flex;align-items:center;gap:8px;}
+.foot-brand .label{
+  font-family:var(--mono);font-weight:700;font-size:11px;
+  letter-spacing:.18em;color:var(--faint);
+}
+.foot-line{font-size:13px;color:var(--faint);}
+.foot-line a{color:var(--dim);border-bottom:1px solid var(--border-2);}
+.foot-line a:hover{color:var(--text);}
+</style>
+</head>
+<body>
+<div id="page">
+
+  <header class="hero">
+    <div class="brand">
+      <svg class="symbol" width="40" height="40" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="g0" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/>
+          </linearGradient>
+        </defs>
+        <circle class="dot" cx="19" cy="26" r="5.5" fill="url(#g0)"/>
+        <path class="wave1" d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#g0)" stroke-width="3.4" stroke-linecap="round"/>
+        <path class="wave2" d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#g0)" stroke-width="3" stroke-linecap="round" opacity=".55"/>
+      </svg>
+      <span class="wordmark">altouch</span>
+    </div>
+    <p class="eyebrow">Soluciones de bolsillo</p>
+    <h1 class="thesis">Se abre y se usa.</h1>
+    <p class="lead">Son aplicaciones sencillas que te facilitan el día a día. Algunas se instalan fácilmente en tu celular y otras solo se abren para una consulta rápida. No juntamos datos: no hace falta cuenta, y lo que ingresás se queda en tu dispositivo.</p>
+  </header>
+
+  <!-- defs compartidos para los tiles de íconos -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="grad-practicas" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/>
+      </linearGradient>
+      <linearGradient id="grad-ludicas" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#FF8FA8"/><stop offset=".55" stop-color="#E5527E"/><stop offset="1" stop-color="#A63D8F"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <section class="category" aria-labelledby="cat-practicas">
+    <div class="cat-head">
+      <h2 class="cat-title" id="cat-practicas">Prácticas</h2>
+      <p class="cat-sub">Para resolver algo puntual.</p>
+    </div>
+    <div class="grid">
+
+      <!-- TILE: copiar este bloque para cada app nueva -->
+      <a class="tile" href="/nmclb">
+        <svg class="icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="52" height="52" rx="14.56" fill="url(#grad-practicas)"/>
+          <path d="M26 10 V40 M14 16 H38 M19 40 H33 M14 16 L8 27 H20 Z M38 16 L32 27 H44 Z"
+                stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="body">
+          <div class="name">NMCLB</div>
+          <p class="blurb">Sumá tus cuentas y wallets, y fijate si el total cierra.</p>
+        </div>
+      </a>
+
+      <a class="tile" href="/cryptogest">
+        <svg class="icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="52" height="52" rx="14.56" fill="url(#grad-practicas)"/>
+          <path d="M36 18 L22 33 L16 27" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="body">
+          <div class="name">CryptoGest</div>
+          <p class="blurb">Tus compras de cripto, con la ganancia calculada en pesos.</p>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <section class="category" aria-labelledby="cat-ludicas">
+    <div class="cat-head">
+      <h2 class="cat-title" id="cat-ludicas">Lúdicas</h2>
+      <p class="cat-sub">Para pensar cinco minutos en algo distinto.</p>
+    </div>
+    <div class="grid">
+
+      <a class="tile" href="/findes">
+        <svg class="icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="52" height="52" rx="14.56" fill="url(#grad-ludicas)"/>
+          <path d="M17 12 H35 M17 40 H35 M19 12 L33 40 M33 12 L19 40"
+                stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="body">
+          <div class="name">Findes</div>
+          <p class="blurb">Cuánta vida te queda, en fines de semana y veranos.</p>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-brand">
+      <svg width="20" height="20" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="19" cy="26" r="5.5" fill="url(#g0)"/>
+        <path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#g0)" stroke-width="4.4" stroke-linecap="round"/>
+      </svg>
+      <span class="label">ALTOUCH.COM.AR</span>
+    </div>
+    <p class="foot-line">¿Tenés una idea de app chica? <a href="mailto:hola@altouch.com.ar">Escribime</a>.</p>
+    <p class="foot-line">© 2026 altouch</p>
+  </footer>
+
+</div>
+</body>
+</html>
