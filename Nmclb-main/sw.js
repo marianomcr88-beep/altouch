@@ -1,4 +1,4 @@
-// NMCLB Service Worker — Al Toque
+// NMCLB Service Worker — Altouch
 const CACHE = 'nmclb-v22';
 const ASSETS = [
   './',

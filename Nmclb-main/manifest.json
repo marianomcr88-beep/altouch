@@ -1,7 +1,7 @@
 {
   "name": "NMCLB — No me cierran los balances",
   "short_name": "NMCLB",
-  "description": "Tus finanzas en orden. Parte del ecosistema altoque.",
+  "description": "Tus finanzas en orden. Parte del ecosistema altouch.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
