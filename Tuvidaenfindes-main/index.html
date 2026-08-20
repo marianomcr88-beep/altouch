@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>findes · altoque</title>
+<meta name="description" content="Cuántos findes te quedan, según las tablas de mortalidad. Una app de altoque.">
+<meta name="theme-color" content="#0C1A24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="findes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta property="og:title" content="¿Cuántos findes te quedan?">
+<meta property="og:description" content="No en años. En findes, en veranos, en Mundiales.">
+<meta property="og:url" content="https://altoque.ar/findes">
+<meta property="og:type" content="website">
+<!-- Candado: la app solo puede cargar cosas de su propia carpeta y no puede
+     abrir ninguna conexión de salida. connect-src 'none' significa que el
+     navegador bloquea cualquier intento de enviar datos afuera. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<link rel="preload" href="fonts/rounded-800.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+/* Tipografías servidas desde la propia carpeta. Ni una llamada a terceros. */
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/rounded-400.woff2') format('woff2')}
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/rounded-700.woff2') format('woff2')}
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/rounded-800.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/mono-400.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/mono-600.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/mono-700.woff2') format('woff2')}
+
+:root{
+  /* sustrato — no se toca nunca */
+  --bg-0:#0C1A24; --bg-1:#1A2B3C; --bg-2:#22384B;
+  --plum:#3A1B36;
+  --border:rgba(255,255,255,.12);
+  --border-2:rgba(255,255,255,.22);
+  --text:#FFFFFF;
+  --dim:rgba(255,255,255,.62);
+  --faint:rgba(255,255,255,.38);
+
+  /* acento — lúdicas */
+  --grad:linear-gradient(135deg,#FF8FA8 0%,#E5527E 55%,#A63D8F 100%);
+  --accent:#E5527E;
+
+  /* estado — nunca decorativo */
+  --ok:#7FC97A; --alert:#FF5A6E;
+
+  /* forma y tipo */
+  --r:14px;
+  --font:'M PLUS Rounded 1c',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg-0);color:var(--text);font-family:var(--font);font-weight:400;
+  -webkit-font-smoothing:antialiased;min-height:100vh;
+  padding-bottom:calc(46px + env(safe-area-inset-bottom));
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font-family:inherit}
+
+/* ---- roles tipográficos ---- */
+.display{font-weight:800;font-size:clamp(30px,8vw,42px);line-height:1.05;letter-spacing:-.04em;margin:0}
+.cifra{font-family:var(--mono);font-weight:700;font-size:clamp(38px,11vw,54px);letter-spacing:-.03em;line-height:1;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.titulo{font-weight:700;font-size:20px;line-height:1.2;margin:0}
+.cuerpo{font-weight:400;font-size:15px;line-height:1.6;margin:0}
+.etiqueta{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);margin:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- estructura ---- */
+.wrap{max-width:600px;margin:0 auto;padding:26px 18px 40px}
+.pantalla{display:none}
+.pantalla.on{display:block}
+.pie-fijo{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:rgba(12,26,36,.92);backdrop-filter:blur(8px);
+  border-top:1px solid var(--border);
+  padding:13px 18px calc(13px + env(safe-area-inset-bottom));
+  text-align:center;font-family:var(--mono);font-weight:600;font-size:11px;
+  letter-spacing:.22em;color:var(--faint)
+}
+
+/* ---- marca ---- */
+.marca-pie{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:auto}
+.marca-pie svg{width:20px;height:20px;flex:none}
+.marca-pie span{font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:.2em;color:var(--faint)}
+
+/* ---- tile ---- */
+.tile{width:96px;height:96px;border-radius:26.88px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin:0 auto}
+.tile svg{width:88px;height:88px}
+
+/* ---- botones ---- */
+.btn{
+  display:block;width:100%;border:0;border-radius:var(--r);padding:17px;cursor:pointer;
+  font-weight:800;font-size:17px;color:#fff;background:var(--grad);letter-spacing:-.01em
+}
+.btn:active{transform:translateY(1px)}
+.btn-fantasma{
+  display:block;width:100%;border:1px solid var(--border-2);background:transparent;border-radius:var(--r);
+  padding:15px;cursor:pointer;font-weight:700;font-size:15px;color:var(--dim)
+}
+.btn-fantasma:hover{color:var(--text);border-color:var(--accent)}
+.link{background:none;border:0;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:12px 0 0}
+
+/* ---- apertura ---- */
+#p-abrir .wrap{min-height:calc(100vh - 46px);display:flex;flex-direction:column;text-align:center}
+.abrir-centro{margin:auto 0;display:flex;flex-direction:column;gap:22px;align-items:center}
+.abrir-nombre{margin:0}
+.abrir-sub{color:var(--dim);max-width:30ch;margin:0}
+
+/* ---- campos ---- */
+.campo{margin-bottom:22px}
+.campo-lbl{display:block;margin-bottom:10px}
+.fecha-caja{display:flex;align-items:center;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px}
+.fecha-caja.mal{border-color:var(--alert)}
+.fnum{width:2.7ch;border:0;background:transparent;color:var(--text);font-family:var(--mono);font-weight:700;font-size:22px;padding:16px 0;text-align:center;outline:none}
+.fnum--ancho{width:4.8ch}
+.fnum::placeholder{color:var(--faint);font-weight:400}
+.fsep{color:var(--faint);font-family:var(--mono);font-size:20px;padding:0 3px}
+.aviso-error{color:var(--alert);font-size:13px;margin:9px 0 0;line-height:1.5}
+
+.opciones{display:grid;gap:10px}
+.opcion{
+  width:100%;text-align:left;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r);
+  padding:19px 18px;color:var(--text);font-weight:700;font-size:17px;cursor:pointer
+}
+.opcion:hover{border-color:var(--border-2)}
+.opcion.on{border-color:var(--accent)}
+
+/* ---- respuesta ---- */
+.respuesta{background:var(--plum);border:1px solid var(--border);border-radius:var(--r);padding:26px 20px;text-align:center}
+.respuesta .cifra{display:block;margin-bottom:12px}
+.respuesta .etiqueta{margin-bottom:16px}
+.respuesta .cuerpo{color:var(--dim)}
+
+.bloque{margin-top:34px}
+.bloque > .etiqueta{margin-bottom:14px}
+
+/* línea */
+.linea-barra{position:relative;height:8px;background:var(--bg-2);border-radius:5px}
+.linea-vivido{position:absolute;inset:0 auto 0 0;background:var(--grad);border-radius:5px}
+.linea-cruce{position:absolute;top:-6px;width:2px;height:20px;background:var(--border-2)}
+.linea-aca{position:absolute;top:50%;transform:translate(-50%,-50%)}
+.linea-punto{display:block;width:15px;height:15px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 4px var(--bg-0)}
+.linea-txt{position:absolute;top:21px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--alert)}
+.linea-pies{display:flex;justify-content:space-between;margin-top:34px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.linea-nota{font-size:14px;line-height:1.6;color:var(--dim);margin:14px 0 0}
+.linea-nota b{color:var(--text);font-weight:700}
+
+/* datos */
+.datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:9px}
+.dato{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px}
+.dato-v{font-family:var(--mono);font-weight:700;font-size:25px;letter-spacing:-.02em;line-height:1.1;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dato--ido .dato-v{background:none;color:var(--dim)}
+.dato-e{font-size:12px;color:var(--faint);margin-top:6px;line-height:1.4}
+
+/* módulos */
+.mod{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r);padding:19px 17px;margin-bottom:10px}
+.mod-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.mod-head .titulo{font-size:17px}
+.mod .titulo{font-size:17px;margin-bottom:12px}
+.mod-ayuda{font-size:13px;color:var(--faint);margin:-6px 0 12px}
+.badge{background:var(--grad);color:#fff;border-radius:20px;padding:5px 13px;font-family:var(--mono);font-weight:700;font-size:13px;flex:none}
+.salida{margin-top:15px;padding-top:14px;border-top:1px solid var(--border)}
+.sl{font-size:14.5px;line-height:1.6;margin:0 0 7px;color:var(--text)}
+.sl b{font-family:var(--mono);font-weight:700;color:var(--accent)}
+.sl--tenue{color:var(--faint);font-size:13px}
+.mod-sep{height:1px;background:var(--border);margin:17px 0}
+
+input[type=range]{width:100%;appearance:none;-webkit-appearance:none;background:transparent;margin:6px 0 3px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--bg-2);border-radius:3px}
+input[type=range]::-moz-range-track{height:4px;background:var(--bg-2);border-radius:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--accent);margin-top:-10px;cursor:pointer;border:0}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--accent);cursor:pointer;border:0}
+.rango-pies{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint)}
+
+.mini-lbl{display:block;font-size:12px;color:var(--faint);margin:14px 0 7px}
+.mini-lbl b{font-family:var(--mono);color:var(--accent)}
+.mini{width:100%;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:16px;padding:13px;border-radius:10px;font-family:var(--font);font-weight:400}
+.mini.num{font-family:var(--mono);font-weight:700}
+.mini::placeholder{color:var(--faint);font-weight:400}
+.trio{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px}
+.trio .mini{text-align:center}
+
+.hitos{list-style:none;margin:0;padding:0}
+.hito{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border)}
+.hito:last-child{border-bottom:0}
+.hito-m{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px;flex:none}
+.hito--ido .hito-m{background:var(--bg-2)}
+.hito--ido .hito-t{color:var(--faint)}
+.hito-t{font-size:14.5px;line-height:1.35}
+.hito-f{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:4px}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{background:var(--bg-2);border:1px solid var(--border);color:var(--dim);border-radius:20px;padding:8px 13px;font-size:13px;cursor:pointer}
+.chip:hover{color:var(--text);border-color:var(--border-2)}
+.chip.on{border-color:var(--accent);color:var(--text)}
+.cuantas-out{margin-top:18px;padding-top:15px;border-top:1px solid var(--border);text-align:center}
+.cuantas-n{font-family:var(--mono);font-weight:700;font-size:clamp(38px,13vw,52px);line-height:1;letter-spacing:-.03em;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cuantas-t{font-size:15px;color:var(--dim);margin-top:10px}
+.cuantas-a{font-size:13px;color:var(--alert);margin-top:10px}
+
+/* grilla */
+.grilla{display:grid;grid-template-columns:repeat(52,1fr);gap:2px}
+.p{aspect-ratio:1;border-radius:50%;background:var(--bg-2)}
+.p.ido{background:var(--accent);opacity:0;animation:ap .5s ease forwards}
+.p.hoy{background:var(--alert);animation:lat 1.6s ease-in-out infinite}
+@keyframes ap{to{opacity:1}}
+@keyframes lat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.5)}}
+@media (prefers-reduced-motion:reduce){.p.ido{opacity:1;animation:none}.p.hoy{animation:none}}
+.leyenda{display:flex;gap:15px;flex-wrap:wrap;margin-top:13px;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.leyenda i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:0}
+.l1{background:var(--accent)}.l2{background:var(--alert)}.l3{background:var(--bg-2)}
+
+/* cierre */
+.cierre{margin-top:38px;background:var(--plum);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px}
+.cierre .display{font-size:clamp(24px,6.5vw,32px);margin-bottom:16px}
+.cierre p{font-size:15px;line-height:1.65;color:var(--dim);margin:0 0 13px}
+.cierre b{color:var(--text);font-weight:700}
+.reloj{margin-top:20px;padding:18px;background:var(--bg-0);border:1px solid var(--border);border-radius:10px;text-align:center}
+.reloj .etiqueta{margin-bottom:9px}
+.reloj-v{font-family:var(--mono);font-weight:700;font-size:clamp(20px,6vw,28px);color:var(--alert)}
+.remate{font-weight:800;font-size:clamp(20px,5.5vw,26px);line-height:1.25;letter-spacing:-.03em;margin:26px 0 0;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.legal{margin-top:24px;font-size:11px;line-height:1.6;color:var(--faint)}
+.acciones{margin-top:26px;display:grid;gap:10px}
+</style>
+</head>
+<body>
+
+<!-- ══════════ 1 · APERTURA ══════════ -->
+<section class="pantalla on" id="p-abrir">
+  <div class="wrap">
+    <div class="marca-pie">
+      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="gm" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#FF8FA8"/><stop offset=".55" stop-color="#E5527E"/><stop offset="1" stop-color="#A63D8F"/>
+        </linearGradient></defs>
+        <circle cx="19" cy="26" r="5.5" fill="url(#gm)"/>
+        <path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#gm)" stroke-width="4.4" stroke-linecap="round"/>
+      </svg>
+      <span>ALTOQUE · SOLUCIONES DE BOLSILLO</span>
+    </div>
+
+    <div class="abrir-centro">
+      <div class="tile">
+        <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M9 26 H43" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="31" cy="26" r="6.5" stroke="#fff" stroke-width="2.6"/>
+        </svg>
+      </div>
+      <h1 class="display abrir-nombre">findes</h1>
+      <p class="cuerpo abrir-sub">Cuánto te queda, contado en findes, veranos y Mundiales.</p>
+      <div style="width:100%;max-width:340px">
+        <button class="btn" id="b-arrancar">Calcular</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 2 · LA PREGUNTA (paso 1) ══════════ -->
+<section class="pantalla" id="p-fecha">
+  <div class="wrap">
+    <p class="etiqueta">Paso 1 de 2</p>
+    <h2 class="display" style="margin:12px 0 26px">¿Cuándo naciste?</h2>
+    <div class="campo">
+      <span class="etiqueta campo-lbl">Día · mes · año</span>
+      <div class="fecha-caja" id="caja-fecha">
+        <input class="fnum" id="f-dd" inputmode="numeric" placeholder="DD" aria-label="Día" maxlength="2" autocomplete="off">
+        <span class="fsep">/</span>
+        <input class="fnum" id="f-mm" inputmode="numeric" placeholder="MM" aria-label="Mes" maxlength="2" autocomplete="off">
+        <span class="fsep">/</span>
+        <input class="fnum fnum--ancho" id="f-aa" inputmode="numeric" placeholder="AAAA" aria-label="Año" maxlength="4" autocomplete="off">
+      </div>
+      <p class="aviso-error" id="err-fecha" hidden></p>
+    </div>
+    <button class="btn" id="b-seguir">Seguir</button>
+    <button class="link" id="b-volver-1" style="width:100%;text-align:center">Volver</button>
+  </div>
+</section>
+
+<!-- ══════════ 2 · LA PREGUNTA (paso 2) ══════════ -->
+<section class="pantalla" id="p-sexo">
+  <div class="wrap">
+    <p class="etiqueta">Paso 2 de 2</p>
+    <h2 class="display" style="margin:12px 0 10px">¿Femenino o masculino?</h2>
+    <p class="cuerpo" style="color:var(--dim);margin-bottom:26px">La tabla de mortalidad cambia bastante entre los dos.</p>
+    <div class="opciones">
+      <button class="opcion" data-sexo="F">Femenino</button>
+      <button class="opcion" data-sexo="M">Masculino</button>
+    </div>
+    <button class="link" id="b-volver-2" style="width:100%;text-align:center">Volver</button>
+  </div>
+</section>
+
+<!-- ══════════ 3 · LA RESPUESTA ══════════ -->
+<section class="pantalla" id="p-resultado">
+  <div class="wrap" id="salida"></div>
+</section>
+
+<div class="pie-fijo">ALTOQUE.AR</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   TABLAS DE MORTALIDAD — VALORES ILUSTRATIVOS
+   Reemplazar por las tablas abreviadas de INDEC antes de publicar.
+   ex = esperanza de vida restante A LA EDAD x. Pasos de 5 años.
+   ══════════════════════════════════════════════════════════════ */
+const EX_M=[73.6,70.0,65.1,60.2,55.4,50.8,46.1,41.5,36.9,32.5,28.2,24.1,20.2,16.6,13.3,10.3,7.7,5.6,4.0,2.9,2.1];
+const EX_F=[80.3,76.5,71.6,66.6,61.8,56.9,52.1,47.3,42.6,37.9,33.4,29.0,24.7,20.5,16.6,12.9,9.7,7.0,5.0,3.5,2.5];
+
+const DIA=86400000, ANIO=365.2425, LUNA=29.53059, KM_DIA=2573424, LAT_DIA=100800;
+const DIAS=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MUNDIALES=[1930,1934,1938,1950,1954,1958,1962,1966,1970,1974,1978,1982,1986,1990,1994,1998,2002,2006,2010,2014,2018,2022,2026];
+
+const ex=(e,s)=>{const t=s==='F'?EX_F:EX_M;if(e<=0)return t[0];if(e>=100)return t[t.length-1];
+  const i=Math.floor(e/5);return t[i]+(t[i+1]-t[i])*((e-i*5)/5);};
+const N=n=>Math.round(n).toLocaleString('es-AR');
+const fLarga=d=>`${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+const fCorta=d=>`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+const masDias=(n,x)=>new Date(n.getTime()+x*DIA);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function anual(mes,dia,desde,hasta){let n=0;
+  for(let y=desde.getFullYear();y<=hasta.getFullYear();y++){const d=new Date(y,mes,dia);if(d>desde&&d<=hasta)n++;}
+  return n;}
+
+function cruce(nac,s){for(let m=0;m<1300;m++){
+  const d=new Date(nac.getFullYear(),nac.getMonth()+m,nac.getDate());
+  const e=(d-nac)/DIA/ANIO; if(e>=ex(e,s))return d;} return null;}
+
+function calcular(nac,s){
+  const hoy=new Date(), vividos=Math.floor((hoy-nac)/DIA), edad=vividos/ANIO;
+  const e=ex(edad,s), restanDias=e*ANIO, fin=new Date(hoy.getTime()+restanDias*DIA);
+  const mVividos=MUNDIALES.filter(y=>{const d=new Date(y,6,1);return d>nac&&d<=hoy;});
+  const mFuturos=[]; for(let y=2030;y<=fin.getFullYear()+4;y+=4){const d=new Date(y,6,1);if(d>hoy&&d<=fin)mFuturos.push(y);}
+  return {nac,hoy,s,edad,e,vividos,restanDias,fin,edadFin:edad+e,
+    findesIdos:Math.floor(vividos/7), findes:Math.floor(restanDias/7),
+    lunasIdas:vividos/LUNA, lunas:restanDias/LUNA,
+    km:vividos*KM_DIA, latidos:vividos*LAT_DIA, diaNac:DIAS[nac.getDay()],
+    mVividos,mFuturos,
+    veranos:anual(11,21,hoy,fin), navidades:anual(11,25,hoy,fin),
+    cumples:anual(nac.getMonth(),nac.getDate(),hoy,fin),
+    asados:Math.floor(restanDias/15), cruce:cruce(nac,s)};
+}
+
+/* ---------- navegación ---------- */
+const $=id=>document.getElementById(id);
+let D=null, NAC=null, SEXO=null;
+const ir=id=>{document.querySelectorAll('.pantalla').forEach(p=>p.classList.remove('on'));
+  $(id).classList.add('on'); window.scrollTo(0,0);};
+
+$('b-arrancar').onclick=()=>{ir('p-fecha');setTimeout(()=>$('f-dd').focus(),80);};
+$('b-volver-1').onclick=()=>ir('p-abrir');
+$('b-volver-2').onclick=()=>ir('p-fecha');
+
+/* salto de foco entre DD / MM / AAAA */
+const soloNum=(el,max,sig)=>{el.value=el.value.replace(/\D/g,'').slice(0,max);
+  if(el.value.length===max&&sig)sig.focus();};
+$('f-dd').oninput=()=>soloNum($('f-dd'),2,$('f-mm'));
+$('f-mm').oninput=()=>soloNum($('f-mm'),2,$('f-aa'));
+$('f-aa').oninput=()=>soloNum($('f-aa'),4,null);
+$('f-mm').onkeydown=e=>{if(e.key==='Backspace'&&!$('f-mm').value)$('f-dd').focus();};
+$('f-aa').onkeydown=e=>{if(e.key==='Backspace'&&!$('f-aa').value)$('f-mm').focus();};
+$('f-aa').addEventListener('keypress',e=>{if(e.key==='Enter')$('b-seguir').click();});
+
+function leerFecha(){
+  const dd=$('f-dd').value, mm=$('f-mm').value, aa=$('f-aa').value;
+  if(!dd||!mm||aa.length!==4) return {err:'Faltan datos. Escribí día, mes y los cuatro dígitos del año.'};
+  const d=+dd,m=+mm,a=+aa;
+  if(m<1||m>12) return {err:'El mes va de 01 a 12.'};
+  const f=new Date(a,m-1,d);
+  if(f.getMonth()!==m-1||f.getDate()!==d) return {err:`${MESES[m-1]} de ${a} no tiene ${d} días. Corregí el día.`};
+  if(f>new Date()) return {err:'Esa fecha todavía no llegó. Revisá el año.'};
+  const edad=(Date.now()-f)/DIA/ANIO;
+  if(edad>=100) return {err:'La tabla de mortalidad llega hasta los 100 años.'};
+  return {f};
+}
+
+$('b-seguir').onclick=()=>{
+  const r=leerFecha(), e=$('err-fecha'), caja=$('caja-fecha');
+  if(r.err){e.textContent=r.err;e.hidden=false;caja.classList.add('mal');return;}
+  e.hidden=true;caja.classList.remove('mal');NAC=r.f;ir('p-sexo');
+};
+
+document.querySelectorAll('.opcion').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.opcion').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); SEXO=b.dataset.sexo;
+    D=calcular(NAC,SEXO); pintar(); ir('p-resultado');
+  };
+});
+
+/* ---------- render del resultado ---------- */
+function pintar(){
+  const d=D;
+  const pct=(d.edad/d.edadFin)*100;
+  const eC=d.cruce?(d.cruce-d.nac)/DIA/ANIO:null;
+  const pctC=eC?(eC/d.edadFin)*100:null;
+  const yaCruzo=d.cruce&&d.cruce<=d.hoy;
+
+  const dato=(v,e,ido)=>`<div class="dato${ido?' dato--ido':''}"><div class="dato-v">${v}</div><div class="dato-e">${e}</div></div>`;
+
+  $('salida').innerHTML=`
+  <div class="respuesta">
+    <span class="cifra num" id="cifra">${N(d.findes)}</span>
+    <p class="etiqueta">findes por delante</p>
+    <p class="cuerpo">Unos <span class="num">${d.e.toFixed(1)}</span> años más. Si todo va como el promedio,
+      llegás hasta el ${fLarga(d.fin)}.</p>
+  </div>
+
+  <div class="bloque">
+    <p class="etiqueta">Estás acá</p>
+    <div class="linea-barra">
+      <div class="linea-vivido" style="width:${pct}%"></div>
+      ${pctC!==null?`<div class="linea-cruce" style="left:${pctC}%"></div>`:''}
+      <div class="linea-aca" style="left:${pct}%"><span class="linea-punto"></span><span class="linea-txt">hoy</span></div>
+    </div>
+    <div class="linea-pies"><span>${d.nac.getFullYear()}</span><span>${d.fin.getFullYear()}</span></div>
+    ${d.cruce?`<p class="linea-nota">${yaCruzo
+      ?`El punto de cruce <b>ya pasó</b>: fue el ${fLarga(d.cruce)}. Desde ese día tenés menos vida por delante que por detrás.`
+      :`Punto de cruce: <b>${fLarga(d.cruce)}</b>. Ese día vas a empezar a tener menos por delante que por detrás.`}</p>`:''}
+  </div>
+
+  <div class="bloque">
+    <p class="etiqueta">Hacia atrás</p>
+    <div class="datos">
+      ${dato(d.diaNac,'Naciste un',1)}
+      ${dato(N(d.vividos),'Días vividos',1)}
+      ${dato(N(d.findesIdos),'Findes que ya usaste',1)}
+      ${dato(N(d.lunasIdas),'Lunas llenas que pasaron',1)}
+      ${dato(d.mVividos.length,`Mundiales vividos${d.mVividos.length?` (desde ${d.mVividos[0]})`:''}`,1)}
+      ${dato((d.km/1e9).toFixed(1)+' mil M','Kilómetros girando alrededor del Sol',1)}
+      ${dato((d.latidos/1e9).toFixed(2)+' mil M','Latidos, más o menos',1)}
+    </div>
+  </div>
+
+  <div class="bloque">
+    <p class="etiqueta">Hacia adelante</p>
+    <div class="datos">
+      ${dato(N(d.findes),'Findes')}
+      ${dato(d.veranos,'Veranos')}
+      ${dato(d.navidades,'Navidades')}
+      ${dato(d.cumples,'Cumpleaños tuyos')}
+      ${dato(d.mFuturos.length,d.mFuturos.length?`Mundiales — el último, el ${d.mFuturos[d.mFuturos.length-1]}`:'Mundiales')}
+      ${dato(N(d.lunas),'Lunas llenas')}
+      ${dato(N(d.asados),'Asados, uno cada 15 días')}
+      ${dato(N(d.restanDias),'Atardeceres')}
+    </div>
+  </div>
+
+  <div class="bloque">
+    <p class="etiqueta">Jugá con tu línea</p>
+
+    <div class="mod">
+      <div class="mod-head"><h3 class="titulo">Cuando cumpliste (o cumplas)</h3><span class="badge" id="r-edad">30</span></div>
+      <input type="range" id="r-slider" min="0" max="${Math.floor(d.edadFin)}" value="30" aria-label="Edad">
+      <div class="rango-pies"><span>0</span><span>${Math.floor(d.edadFin)}</span></div>
+      <div class="salida" id="r-out"></div>
+    </div>
+
+    <div class="mod">
+      <h3 class="titulo" id="h-hitos">Lo próximo que te toca</h3>
+      <ul class="hitos" id="lista-hitos"></ul>
+      <button class="link" id="b-hitos">Ver también los que ya pasaron</button>
+    </div>
+
+    <div class="mod">
+      <h3 class="titulo">Traductor de días</h3>
+      <label class="mini-lbl" for="t-n">Tu día número…</label>
+      <input class="mini num" id="t-n" inputmode="numeric" value="10000" maxlength="5">
+      <p class="sl" id="t-out1"></p>
+      <div class="mod-sep"></div>
+      <span class="mini-lbl">…o qué día tuyo fue esta fecha</span>
+      <div class="trio">
+        <input class="mini num" id="t-dd" inputmode="numeric" placeholder="DD" aria-label="Día" maxlength="2">
+        <input class="mini num" id="t-mm" inputmode="numeric" placeholder="MM" aria-label="Mes" maxlength="2">
+        <input class="mini num" id="t-aa" inputmode="numeric" placeholder="AAAA" aria-label="Año" maxlength="4">
+      </div>
+      <p class="sl" id="t-out2"></p>
+    </div>
+
+    <div class="mod">
+      <h3 class="titulo">¿Cuántas veces más?</h3>
+      <p class="mod-ayuda">Elegí algo, o escribí lo que quieras.</p>
+      <div class="chips" id="chips"></div>
+      <label class="mini-lbl" for="c-cosa">Qué</label>
+      <input class="mini" id="c-cosa" value="ver el mar" maxlength="40" placeholder="ver a tu hermano">
+      <label class="mini-lbl" for="c-frec">Veces por año: <b id="c-frec-v">2</b></label>
+      <input type="range" id="c-frec" min="1" max="365" value="2" aria-label="Veces por año">
+      <div class="rango-pies"><span>1 al año</span><span>todos los días</span></div>
+      <div class="cuantas-out">
+        <div class="cuantas-n num" id="c-num">—</div>
+        <div class="cuantas-t" id="c-txt"></div>
+        <div class="cuantas-a" id="c-alerta"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <p class="etiqueta">Tu vida, un punto por finde</p>
+    <div class="grilla" id="grilla" role="img"
+      aria-label="${N(d.findesIdos+d.findes)} findes en total: ${N(d.findesIdos)} vividos y ${N(d.findes)} por delante."></div>
+    <div class="leyenda">
+      <span><i class="l1"></i>${N(d.findesIdos)} vividos</span>
+      <span><i class="l2"></i>este</span>
+      <span><i class="l3"></i>${N(d.findes)} por delante</span>
+    </div>
+  </div>
+
+  <div class="cierre">
+    <h2 class="display">Ninguno de estos números es tuyo.</h2>
+    <p>Son promedios. Describen a un montón de gente al mismo tiempo y a nadie en particular.
+      <b>Casi la mitad de las personas de tu edad no va a llegar a esa fecha</b>, y ninguna de ellas lo
+      sabía cuando abrió una app.</p>
+    <p>La grilla de arriba tiene <span class="num">${N(d.findes)}</span> puntos apagados. No están
+      garantizados. El único que existe de verdad es el que está prendido en rojo.</p>
+    <div class="reloj">
+      <p class="etiqueta">Este finde termina en</p>
+      <div class="reloj-v" id="reloj">—</div>
+    </div>
+    <p class="remate">No empieces el lunes.<br>Ya estás adentro de uno.</p>
+  </div>
+
+  <div class="acciones">
+    <button class="btn" id="b-compartir">Compartir</button>
+    <button class="btn-fantasma" id="b-otra">Probar con otra fecha</button>
+  </div>
+
+  <p class="legal">Estimaciones basadas en tablas de mortalidad por edad y sexo. No es una predicción
+    médica ni personal.<br><br>
+    Tu fecha de nacimiento no sale de este dispositivo. No hay servidor, no hay cuenta, no hay
+    analítica y no hay cookies: el cálculo pasa entero en tu navegador y se borra al cerrar.
+    Las tipografías vienen adentro de la app, así que ni siquiera se le pide algo a un tercero.</p>
+  `;
+
+  montarGrilla(); montarRegla(); montarHitos(); montarTraductor(); montarCuantas(); montarReloj();
+  $('b-otra').onclick=()=>{ir('p-fecha');};
+  $('b-compartir').onclick=compartir;
+}
+
+/* ---------- grilla ---------- */
+function montarGrilla(){
+  const g=$('grilla'), total=D.findesIdos+D.findes;
+  const red=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<total;i++){
+    const s=document.createElement('span');
+    if(i<D.findesIdos){s.className='p ido';if(!red)s.style.animationDelay=(i/D.findesIdos*1500)+'ms';}
+    else if(i===D.findesIdos)s.className='p hoy';
+    else s.className='p';
+    frag.appendChild(s);
+  }
+  g.appendChild(frag);
+}
+
+/* ---------- regla deslizante ---------- */
+function montarRegla(){
+  const sl=$('r-slider');
+  const pintar=()=>{
+    const edad=+sl.value;
+    $('r-edad').textContent=edad+' años';
+    const f=new Date(D.nac.getFullYear()+edad,D.nac.getMonth(),D.nac.getDate());
+    const dias=Math.round((f-D.nac)/DIA), ido=f<=D.hoy, delta=Math.abs(Math.round((f-D.hoy)/DIA));
+    $('r-out').innerHTML=
+      `<p class="sl">Cumpl${ido?'iste':'ís'} ${edad} el <b>${fLarga(f)}</b>, un ${DIAS[f.getDay()]}.</p>
+       <p class="sl">Ese día llev${ido?'abas':'arás'} <b>${N(dias)}</b> días vividos y <b>${N(dias/7)}</b> findes usados.</p>
+       <p class="sl sl--tenue">${ido?`Fue hace ${N(delta)} días.`:`Faltan ${N(delta)} días. Unos ${N(delta/7)} findes.`}</p>`;
+  };
+  sl.oninput=pintar; pintar();
+}
+
+/* ---------- hitos ---------- */
+function montarHitos(){
+  const items=[
+    {d:1000,t:'Día 1.000'},{d:5000,t:'Día 5.000'},{d:10000,t:'Día 10.000'},
+    {d:15000,t:'Día 15.000'},{d:20000,t:'Día 20.000'},{d:25000,t:'Día 25.000'},
+    {d:1e9/86400,t:'Mil millones de segundos vivo'},
+    {d:1e7/1440,t:'Diez millones de minutos'},
+    {d:2e7/1440,t:'Veinte millones de minutos'},
+    {d:1e9/LAT_DIA,t:'Mil millones de latidos'},
+    {d:500*LUNA,t:'Luna llena n° 500'},
+    {d:7000,t:'Semana 1.000'},{d:14000,t:'Semana 2.000'},
+    {d:D.vividos*2,t:'El día que tengas el doble de la edad de hoy'},
+    {d:(D.vividos+D.restanDias)/2,t:'La mitad exacta de tu vida estimada'},
+  ].map(x=>{const f=masDias(D.nac,x.d);
+    return {...x,f,ido:f<=D.hoy,delta:Math.abs(Math.round((f-D.hoy)/DIA))};})
+   .filter(x=>x.f<=D.fin).sort((a,b)=>a.f-b.f);
+
+  let todos=false;
+  const pintar=()=>{
+    const ver=todos?items:items.filter(x=>!x.ido).slice(0,5);
+    $('h-hitos').textContent=todos?'Todos tus hitos':'Lo próximo que te toca';
+    $('b-hitos').textContent=todos?'Ver solo lo que viene':'Ver también los que ya pasaron';
+    $('lista-hitos').innerHTML=ver.length?ver.map(x=>
+      `<li class="hito${x.ido?' hito--ido':''}"><span class="hito-m"></span><div>
+        <div class="hito-t">${x.t}</div>
+        <div class="hito-f">${fCorta(x.f)} · ${x.ido?`hace ${N(x.delta)} días`:`en ${N(x.delta)} días`}</div>
+      </div></li>`).join(''):'<li class="hito"><div class="hito-t">Ya los pasaste a todos. Tocá el botón de abajo para verlos.</div></li>';
+  };
+  $('b-hitos').onclick=()=>{todos=!todos;pintar();};
+  pintar();
+}
+
+/* ---------- traductor ---------- */
+function montarTraductor(){
+  const n=$('t-n');
+  const p1=()=>{
+    n.value=n.value.replace(/\D/g,'').slice(0,5);
+    const v=parseInt(n.value,10);
+    if(!v||v<1||v>40000){$('t-out1').textContent='';return;}
+    const f=masDias(D.nac,v), ido=f<=D.hoy, delta=Math.abs(Math.round((f-D.hoy)/DIA));
+    $('t-out1').innerHTML=`Tu día <b>${N(v)}</b> ${ido?'fue':'cae'} el ${fLarga(f)}, un ${DIAS[f.getDay()]}. `+
+      (ido?`Hace ${N(delta)} días.`:`Faltan ${N(delta)} días.`);
+  };
+  n.oninput=p1; p1();
+
+  const dd=$('t-dd'),mm=$('t-mm'),aa=$('t-aa');
+  const p2=()=>{
+    [dd,mm,aa].forEach((el,i)=>el.value=el.value.replace(/\D/g,'').slice(0,i===2?4:2));
+    if(!dd.value||!mm.value||aa.value.length!==4){$('t-out2').textContent='';return;}
+    const f=new Date(+aa.value,+mm.value-1,+dd.value);
+    if(f.getMonth()!==+mm.value-1){$('t-out2').textContent='Esa fecha no existe.';return;}
+    const v=Math.round((f-D.nac)/DIA);
+    $('t-out2').innerHTML=v<0
+      ?`Esa fecha es <b>${N(-v)}</b> días antes de que existieras.`
+      :`Ese fue tu día <b>${N(v)}</b>. Tenías <b>${(v/ANIO).toFixed(1)}</b> años.`;
+  };
+  [dd,mm,aa].forEach(el=>el.oninput=p2);
+}
+
+/* ---------- cuántas veces más ---------- */
+/* Ojo: cada preset se acota contra TU esperanza de vida. Por eso acá no va
+   "ver a tus viejos": ese número lo limita la vida de ellos, no la tuya, y
+   daría un resultado alto y falso. Ese cálculo necesita su propia pantalla. */
+const PRESETS=[['ver el mar',2],['ir al cine',6],['comer un asado',24],
+  ['ir a la cancha',8],['terminar un libro',10],['viajar afuera',1]];
+
+function montarCuantas(){
+  $('chips').innerHTML=PRESETS.map(([n,f])=>
+    `<button class="chip" data-n="${esc(n)}" data-f="${f}">${esc(n)}</button>`).join('');
+  const cosa=$('c-cosa'), frec=$('c-frec');
+  const pintar=()=>{
+    $('c-frec-v').textContent=frec.value;
+    const veces=Math.round(+frec.value*D.e);
+    $('c-num').textContent=N(veces);
+    $('c-txt').textContent=`veces más vas a ${cosa.value||'hacer eso'}`;
+    $('c-alerta').textContent=(veces>0&&veces<100)?'Menos de cien. Entran todas en una hoja.':'';
+    document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.n===cosa.value));
+  };
+  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+    cosa.value=c.dataset.n; frec.value=c.dataset.f; pintar();});
+  cosa.oninput=pintar; frec.oninput=pintar; pintar();
+}
+
+/* ---------- reloj del finde ---------- */
+let relojTimer=null;
+function montarReloj(){
+  if(relojTimer)clearInterval(relojTimer);
+  const tic=()=>{
+    const el=$('reloj'); if(!el){clearInterval(relojTimer);return;}
+    const n=new Date(), f=new Date(n);
+    f.setDate(n.getDate()+((7-n.getDay())%7)); f.setHours(23,59,59,999);
+    let s=Math.max(0,Math.floor((f-n)/1000));
+    const p=x=>String(x).padStart(2,'0');
+    el.textContent=`${Math.floor(s/86400)}d ${p(Math.floor(s/3600)%24)}h ${p(Math.floor(s/60)%60)}m ${p(s%60)}s`;
+  };
+  tic(); relojTimer=setInterval(tic,1000);
+}
+
+/* ---------- compartir ---------- */
+async function compartir(){
+  const txt=`Me quedan ${N(D.findes)} findes, ${D.veranos} veranos y ${D.mFuturos.length} Mundiales.\n\naltoque.ar/findes`;
+  try{
+    if(navigator.share){await navigator.share({title:'findes · altoque',text:txt});return;}
+    await navigator.clipboard.writeText(txt);
+    const b=$('b-compartir'); const o=b.textContent;
+    b.textContent='Copiado'; setTimeout(()=>b.textContent=o,1600);
+  }catch(e){/* el usuario canceló */}
+}
+
+/* ---------- service worker ---------- */
+if('serviceWorker' in navigator){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
