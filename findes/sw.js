@@ -1,6 +1,6 @@
-/* findes · altoque — service worker
+/* findes · altouch — service worker
    Subir la versión en cada deploy para forzar la actualización. */
-const V = 'findes-v1';
+const V = 'findes-v2';
 const SHELL = [
   './',
   './index.html',
