@@ -1,0 +1,26 @@
+{
+  "nmclb": {
+    "enabled": false,
+    "label": "TAMBIÉN EN ALTOUCH",
+    "text": "Findes — cuánta vida te queda, en fines de semana y veranos.",
+    "url": "https://altouch.com.ar/findes"
+  },
+  "cryptogest": {
+    "enabled": false,
+    "label": "TAMBIÉN EN ALTOUCH",
+    "text": "NMCLB — sumá tus cuentas y mirá si el total cierra.",
+    "url": "https://altouch.com.ar/nmclb"
+  },
+  "findes": {
+    "enabled": false,
+    "label": "TAMBIÉN EN ALTOUCH",
+    "text": "CryptoGest — tus compras de cripto, con la ganancia en pesos.",
+    "url": "https://altouch.com.ar/cryptogest"
+  },
+  "turnocercano": {
+    "enabled": false,
+    "label": "TAMBIÉN EN ALTOUCH",
+    "text": "NMCLB — sumá tus cuentas y mirá si el total cierra.",
+    "url": "https://altouch.com.ar/nmclb"
+  }
+}
