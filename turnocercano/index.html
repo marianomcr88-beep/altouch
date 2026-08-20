@@ -3,211 +3,263 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Turno Cercano · Santa Fe</title>
+<title>turno cercano · altouch</title>
 
-<!-- ---- PWA ---- -->
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0a2420">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0C1A24">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Turno Cercano">
-<link rel="apple-touch-icon" href="/farmacias-apple-touch.png">
-<link rel="icon" href="/farmacias-icon-192.png">
+<meta name="apple-mobile-web-app-title" content="turno cercano">
+<link rel="apple-touch-icon" href="farmacias-apple-touch.png">
+<link rel="icon" href="farmacias-icon-192.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-  :root{
-    --bg-deep:#0a2420; --bg-panel:#0f342c; --bg-panel-2:#123c33; --line:#1f4a3f;
-    --accent:#49ffa3; --accent-dim:#2c8a63; --amber:#ffb648;
-    --text:#f2f7f4; --text-muted:#9fc4b6; --danger:#ff6b6b; --radius:18px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:radial-gradient(1200px 600px at 50% -10%, #123c33 0%, var(--bg-deep) 55%), var(--bg-deep);
-    color:var(--text); font-family:'Inter',system-ui,sans-serif; min-height:100vh; padding-bottom:40px;
-  }
-  .wrap{max-width:520px;margin:0 auto;padding:18px 16px 0;}
+:root{
+  --bg-0:#0C1A24;--bg-1:#1A2B3C;--bg-2:#22384B;
+  --border:rgba(255,255,255,.12);--border-2:rgba(255,255,255,.22);
+  --text:#FFFFFF;--dim:rgba(255,255,255,.62);--faint:rgba(255,255,255,.38);
+  --grad:linear-gradient(135deg,#C8E893 0%,#4CAF50 55%,#1B5E20 100%);
+  --accent:#4CAF50;
+  --ok:#7FC97A;--alert:#FF5A6E;
+  --r:14px;
+  --font:'M PLUS Rounded 1c',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;}html,body{margin:0;padding:0;}
+body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:15px;font-weight:400;min-height:100vh;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px 40px;}
 
-  header{display:flex;align-items:center;gap:14px;padding:6px 2px 6px;}
-  .cross{width:46px;height:46px;position:relative;flex:0 0 auto;filter:drop-shadow(0 0 10px rgba(73,255,163,.55));}
-  .cross::before,.cross::after{content:"";position:absolute;background:var(--accent);border-radius:4px;animation:pulseGlow 2.4s ease-in-out infinite;}
-  .cross::before{width:100%;height:32%;top:34%;left:0;}
-  .cross::after{width:32%;height:100%;left:34%;top:0;}
-  @keyframes pulseGlow{0%,100%{opacity:1;filter:drop-shadow(0 0 6px rgba(73,255,163,.5));}50%{opacity:.75;filter:drop-shadow(0 0 14px rgba(73,255,163,.9));}}
-  header h1{font-family:'Space Grotesk',sans-serif;font-size:22px;line-height:1.1;margin:0;letter-spacing:.2px;}
-  header p{margin:2px 0 0;color:var(--text-muted);font-size:13px;}
+/* --- Tipografía altouch --- */
+.display{font-family:var(--font);font-weight:800;font-size:clamp(30px,8vw,42px);letter-spacing:-.04em;line-height:1.1;}
+.cifra{font-family:var(--mono);font-weight:700;font-size:clamp(38px,11vw,54px);letter-spacing:-.03em;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.titulo{font-family:var(--font);font-weight:700;font-size:20px;line-height:1.25;}
+.etiqueta{font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);}
+.mono{font-family:var(--mono);}
 
-  .refresh-tag{
-    display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);
-    margin:0 0 14px 2px;
-  }
-  .refresh-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-dim);}
-  .refresh-tag.live .dot{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+/* --- Marca superior --- */
+.marca-top{
+  text-align:center;padding:20px 0 10px;
+}
+.marca-top .etiqueta{color:var(--faint);}
 
-  .panel{background:linear-gradient(180deg,var(--bg-panel-2),var(--bg-panel));border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+/* --- Tile de app (apertura) --- */
+.app-tile{
+  width:72px;height:72px;border-radius:calc(72px * .28);
+  background:var(--grad);
+  display:flex;align-items:center;justify-content:center;
+  margin:14px auto;
+  box-shadow:0 8px 28px rgba(76,175,80,.3);
+}
 
-  #locateCard{text-align:center;}
-  #locateCard p{color:var(--text-muted);font-size:14px;margin:0 0 14px;}
-  button.cta{background:var(--accent);color:#04241a;border:none;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;padding:13px 20px;border-radius:12px;cursor:pointer;width:100%;transition:transform .15s ease, box-shadow .15s ease;}
-  button.cta:hover{box-shadow:0 4px 22px rgba(73,255,163,.35);}
-  button.cta:active{transform:scale(.98);}
-  button.cta:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
-  button.cta[disabled]{opacity:.55;cursor:default;}
-  button.cta.secondary{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none;margin-top:10px;}
+/* --- Panel --- */
+.panel{
+  background:var(--bg-1);border:1px solid var(--border);
+  border-radius:var(--r);padding:20px;margin-bottom:14px;
+}
 
-  .status-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin-top:12px;justify-content:center;}
-  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--accent-dim);border-top-color:var(--accent);animation:spin 0.8s linear infinite;flex:0 0 auto;}
-  @keyframes spin{to{transform:rotate(360deg);}}
+/* --- Botón degradé (uno solo por pantalla) --- */
+.btn-grad{
+  display:block;width:100%;padding:14px 20px;
+  background:var(--grad);color:#fff;
+  font-family:var(--font);font-weight:700;font-size:15px;
+  border:none;border-radius:12px;cursor:pointer;
+  text-align:center;text-decoration:none;
+  transition:transform .15s ease,box-shadow .15s ease;
+  box-shadow:0 4px 16px rgba(76,175,80,.3);
+}
+.btn-grad:active{transform:scale(.98);}
+.btn-grad:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.btn-grad[disabled]{opacity:.45;cursor:default;}
 
-  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,182,72,.14);border:1px solid rgba(255,182,72,.4);color:var(--amber);font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:10px;}
-  .badge.manual{background:rgba(73,255,163,.12);border-color:rgba(73,255,163,.4);color:var(--accent);}
-  .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);animation:pulseGlow 1.8s ease-in-out infinite;}
-  #recoCard h2{font-family:'Space Grotesk',sans-serif;font-size:24px;margin:0 0 4px;color:var(--text);}
-  #recoCard .addr{color:var(--text-muted);font-size:14px;margin:0 0 14px;}
-  .metrics{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
-  .metric{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:8px 12px;flex:1;min-width:110px;}
-  .metric .num{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:var(--accent);}
-  .metric .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;}
-  .row-btns{display:flex;gap:10px;}
-  .row-btns a{flex:1;text-align:center;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;padding:12px 10px;border-radius:11px;}
-  .btn-primary{background:var(--accent);color:#04241a;border:none;}
-  .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--line);}
-  .back-link{display:inline-block;margin-top:10px;font-size:12.5px;color:var(--text-muted);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;}
+/* --- Botón secundario (ghost) --- */
+.btn-ghost{
+  display:block;width:100%;padding:13px 20px;margin-top:10px;
+  background:transparent;color:var(--dim);
+  font-family:var(--font);font-weight:500;font-size:14px;
+  border:1px solid var(--border);border-radius:12px;cursor:pointer;
+  text-align:center;text-decoration:none;
+}
 
-  #map{width:100%;height:280px;border-radius:var(--radius);border:1px solid var(--line);margin-bottom:14px;filter:saturate(.9);cursor:crosshair;}
-  .leaflet-popup-content-wrapper{background:var(--bg-panel);color:var(--text);border-radius:10px;}
-  .leaflet-popup-tip{background:var(--bg-panel);}
-  #mapHint{text-align:center;font-size:12.5px;color:var(--amber);margin:-6px 0 12px;display:none;}
+/* --- Status --- */
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-top:12px;justify-content:center;}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border-2);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:0 0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  details{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--bg-panel);}
-  summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:16px 18px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14.5px;}
-  summary::-webkit-details-marker{display:none;}
-  summary .chev{transition:transform .2s ease;color:var(--text-muted);}
-  details[open] summary .chev{transform:rotate(180deg);}
-  .list{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;}
-  .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid transparent;cursor:pointer;transition:background .15s ease, border-color .15s ease;}
-  .item:hover{background:rgba(255,255,255,.06);}
-  .item:active{transform:scale(.99);}
-  .item.reco{border-color:rgba(255,182,72,.45);background:rgba(255,182,72,.08);}
-  .item.selected{border-color:rgba(73,255,163,.55);background:rgba(73,255,163,.1);}
-  .item .name{font-weight:600;font-size:14px;}
-  .item .sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
-  .item .dist{font-size:12.5px;color:var(--accent);font-weight:700;white-space:nowrap;}
-  .item .call{display:inline-block;margin-top:6px;font-size:12px;color:var(--amber);text-decoration:none;position:relative;z-index:2;}
-  .item .tap-hint{font-size:10.5px;color:var(--text-muted);opacity:.7;margin-top:2px;}
+/* --- Refresh tag --- */
+.refresh-tag{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);margin:0 0 14px 2px;}
+.refresh-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--faint);}
+.refresh-tag.live .dot{background:var(--ok);box-shadow:0 0 6px var(--ok);}
 
-  footer{margin-top:18px;text-align:center;padding:0 10px 0;}
+/* --- Error --- */
+.error-box{
+  background:rgba(255,90,110,.1);border:1px solid rgba(255,90,110,.35);
+  color:var(--alert);padding:12px 14px;border-radius:12px;font-size:13.5px;margin-top:12px;text-align:left;
+}
 
-  .credit-mini{
-    display:inline-flex;align-items:center;gap:4px;
-    font-size:12px;color:var(--text-muted);
-    padding:10px 0;
-  }
-  .credit-mini .credit-label{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--accent);font-size:12.5px;}
-  .credit-mini .credit-tag{color:var(--text-muted);}
+/* --- Daytime (horario normal) --- */
+.daytime{text-align:center;}
+.daytime .sun{font-size:44px;display:block;margin-bottom:10px;}
+.daytime p{color:var(--dim);font-size:14px;margin:0 0 16px;line-height:1.55;}
+.daytime .link-turno{
+  display:inline-block;margin-top:14px;font-size:13px;color:var(--dim);
+  text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:var(--font);
+}
 
-  .error{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.4);color:#ffb3b3;padding:12px 14px;border-radius:12px;font-size:13.5px;margin-top:12px;text-align:left;}
+/* --- Resultado: cifra arriba de todo --- */
+.reco-cifra{text-align:center;margin-bottom:6px;}
+.reco-cifra .cifra{margin:0;}
+.reco-cifra .etiqueta{display:block;margin-top:2px;}
 
-  .daytime-card{text-align:center;}
-  .daytime-card .sun{font-size:44px;margin-bottom:10px;display:block;}
-  .daytime-card h2{font-family:'Space Grotesk',sans-serif;font-size:20px;margin:0 0 8px;color:var(--text);}
-  .daytime-card p{color:var(--text-muted);font-size:14px;margin:0 0 14px;line-height:1.5;}
-  .daytime-card .gmaps-btn{
-    display:inline-flex;align-items:center;gap:8px;
-    background:var(--accent);color:#04241a;
-    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;
-    padding:12px 20px;border-radius:12px;text-decoration:none;
-    transition:box-shadow .15s ease;
-  }
-  .daytime-card .gmaps-btn:hover{box-shadow:0 4px 18px rgba(73,255,163,.35);}
-  .daytime-card .turno-link{
-    display:inline-block;margin-top:14px;font-size:13px;color:var(--text-muted);
-    text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;
-  }
+/* --- Card farmacia recomendada --- */
+#recoCard .reco-name{font-family:var(--font);font-weight:700;font-size:22px;margin:0 0 4px;}
+#recoCard .reco-addr{color:var(--dim);font-size:14px;margin:0 0 14px;}
+.metrics{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.metric{background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;flex:1;min-width:100px;}
+.metric .num{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--accent);}
+.metric .lbl{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.2px;font-family:var(--mono);font-weight:600;}
+.row-btns{display:flex;gap:10px;}
+.row-btns a{flex:1;text-align:center;text-decoration:none;font-family:var(--font);font-weight:700;font-size:14px;padding:12px 10px;border-radius:11px;}
+.btn-fill{background:var(--accent);color:#fff;border:none;}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.back-link{display:inline-block;margin-top:10px;font-size:12.5px;color:var(--dim);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:var(--font);}
 
-  @media (prefers-reduced-motion: reduce){.cross::before,.cross::after,.badge .dot,.spinner{animation:none !important;}}
+/* --- Badge --- */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;margin-bottom:10px;
+}
+.badge-reco{background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.35);color:var(--accent);}
+.badge-manual{background:rgba(127,201,122,.12);border:1px solid rgba(127,201,122,.35);color:var(--ok);}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* --- Mapa --- */
+#map{width:100%;height:280px;border-radius:var(--r);border:1px solid var(--border);margin-bottom:14px;}
+.leaflet-popup-content-wrapper{background:var(--bg-1);color:var(--text);border-radius:10px;}
+.leaflet-popup-tip{background:var(--bg-1);}
+#mapHint{text-align:center;font-size:12.5px;color:var(--accent);margin:-6px 0 12px;display:none;}
+
+/* --- Lista desplegable --- */
+.list-wrap{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--bg-1);}
+.list-wrap summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;font-family:var(--font);font-weight:700;font-size:14.5px;
+}
+.list-wrap summary::-webkit-details-marker{display:none;}
+.list-wrap .chev{transition:transform .2s ease;color:var(--dim);}
+.list-wrap[open] .chev{transform:rotate(180deg);}
+.list-body{padding:0 10px 10px;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;}
+.item{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:11px 12px;border-radius:11px;background:var(--bg-2);
+  border:1px solid transparent;cursor:pointer;
+  transition:background .15s ease,border-color .15s ease;
+}
+.item:active{transform:scale(.99);}
+.item.highlight{border-color:rgba(76,175,80,.4);background:rgba(76,175,80,.08);}
+.item.selected{border-color:rgba(127,201,122,.45);background:rgba(127,201,122,.08);}
+.item .name{font-weight:700;font-size:14px;}
+.item .sub{font-size:12px;color:var(--dim);margin-top:2px;}
+.item .dist{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:700;white-space:nowrap;}
+.item .call{display:inline-block;margin-top:6px;font-size:12px;color:var(--dim);text-decoration:none;}
+.item .tap-hint{font-size:10.5px;color:var(--faint);margin-top:2px;}
+
+/* --- Footer fijo --- */
+.pie{
+  margin-top:24px;text-align:center;padding:12px 0;
+}
+.pie-logo{display:inline-flex;align-items:center;gap:6px;}
+.pie .etiqueta{color:var(--faint);font-size:10px;letter-spacing:.18em;}
+
+@media(prefers-reduced-motion:reduce){.spinner{animation:none !important;}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header>
-    <div class="cross" aria-hidden="true"></div>
-    <div>
-      <h1>Turno Cercano</h1>
-      <p>Farmacias de guardia · Santa Fe Capital</p>
-    </div>
-  </header>
+  <!-- ====== MARCA SUPERIOR ====== -->
+  <div class="marca-top">
+    <span class="etiqueta">altouch · soluciones de bolsillo</span>
+  </div>
+
+  <!-- ====== APERTURA ====== -->
+  <div class="app-tile" aria-hidden="true">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="6" y="14" width="24" height="8" rx="2" stroke="#fff" stroke-width="2.4"/><rect x="14" y="6" width="8" height="24" rx="2" stroke="#fff" stroke-width="2.4"/></svg>
+  </div>
+
+  <h1 class="display" style="text-align:center;margin:0 0 16px;">turno cercano</h1>
 
   <div class="refresh-tag" id="refreshTag"><span class="dot"></span><span id="refreshTagText">Cargando datos…</span></div>
 
-  <div class="panel" id="locateCard">
-    <p>Activá tu ubicación y te mostramos, de las farmacias de turno de hoy, cuál te queda más cerca — con mapa y ruta.</p>
-    <button class="cta" id="locateBtn">📍 Usar mi ubicación</button>
-    <button class="cta secondary" id="manualBtn">🗺️ Prefiero marcarla en el mapa</button>
-    <div class="status-line" id="statusLine" style="display:none;"></div>
-    <div class="error" id="errorBox" style="display:none;"></div>
-  </div>
-
-  <div class="panel daytime-card" id="daytimeCard" style="display:none;">
+  <!-- ====== PANTALLA: HORARIO NORMAL ====== -->
+  <div class="panel daytime" id="daytimeCard" style="display:none;">
     <span class="sun">☀️</span>
-    <h2>Estás en horario normal</h2>
-    <p>En este momento la mayoría de las farmacias de la ciudad están abiertas. El sistema de turnos aplica fuera de horario (noches, fines de semana y feriados, de 20 hs a 8 hs).</p>
-    <a class="gmaps-btn" id="gmapsLink" href="https://www.google.com/maps/search/farmacia+cerca/" target="_blank" rel="noopener">📍 Buscar farmacia cercana</a>
-    <br>
-    <button class="turno-link" id="showTurnoAnyway">Ver igualmente las farmacias de turno de hoy →</button>
+    <h2 class="titulo">Estás en horario normal</h2>
+    <p>La mayoría de las farmacias están abiertas. El sistema de turnos aplica fuera de horario: noches, fines de semana y feriados.</p>
+    <a class="btn-grad" href="https://www.google.com/maps/search/farmacia+cerca/" target="_blank" rel="noopener">Buscar farmacia cercana</a>
+    <button class="link-turno" id="showTurnoAnyway">Ver las farmacias de turno de hoy</button>
   </div>
 
+  <!-- ====== PANTALLA: UBICACIÓN ====== -->
+  <div id="locateCard" style="text-align:center;">
+    <p style="color:var(--dim);font-size:14px;margin:0 0 16px;">Activá tu ubicación para encontrar la farmacia de turno más cercana.</p>
+    <button class="btn-grad" id="locateBtn">Ubicarme</button>
+    <button class="btn-ghost" id="manualBtn">Marcar en el mapa</button>
+    <div class="status" id="statusLine" style="display:none;"></div>
+    <div class="error-box" id="errorBox" style="display:none;"></div>
+  </div>
+
+  <!-- ====== PANTALLA: RESULTADO ====== -->
   <div class="panel" id="recoCard" style="display:none;">
-    <span class="badge" id="recoBadge"><span class="dot"></span>De turno ahora · te conviene ir acá</span>
-    <h2 id="recoName">—</h2>
-    <p class="addr" id="recoAddr">—</p>
+    <span class="badge badge-reco" id="recoBadge"><span class="dot"></span>MÁS CERCANA</span>
+    <h2 class="reco-name" id="recoName">—</h2>
+    <p class="reco-addr" id="recoAddr">—</p>
     <div class="metrics">
       <div class="metric"><div class="num" id="recoDist">—</div><div class="lbl">Distancia</div></div>
-      <div class="metric"><div class="num" id="recoTime">—</div><div class="lbl">En auto, aprox.</div></div>
+      <div class="metric"><div class="num" id="recoTime">—</div><div class="lbl">En auto</div></div>
     </div>
     <div class="row-btns">
-      <a class="btn-primary" id="recoCallBtn" href="#">📞 Llamar</a>
-      <a class="btn-ghost" id="recoMapsBtn" href="#" target="_blank" rel="noopener">Abrir en Maps</a>
+      <a class="btn-fill" id="recoCallBtn" href="#">Llamar</a>
+      <a class="btn-outline" id="recoMapsBtn" href="#" target="_blank" rel="noopener">Abrir en Maps</a>
     </div>
-    <button class="back-link" id="backToRecoBtn" style="display:none;">← Volver a la recomendada</button>
+    <button class="back-link" id="backToRecoBtn" style="display:none;">Volver a la recomendada</button>
   </div>
 
+  <!-- ====== MAPA ====== -->
   <div id="mapCard" style="display:none;">
-    <div id="mapHint">Tocá el mapa donde estás parado para fijar tu ubicación</div>
+    <div id="mapHint">Tocá el mapa donde estás para fijar tu ubicación</div>
     <div id="map"></div>
   </div>
 
-  <details id="listDetails" style="display:none;">
+  <!-- ====== LISTADO ====== -->
+  <details class="list-wrap" id="listDetails" style="display:none;">
     <summary>
-      <span id="listTitle">Ver todas las farmacias de turno</span>
+      <span id="listTitle">Todas las de turno</span>
       <span class="chev">▾</span>
     </summary>
-    <div class="list" id="list"></div>
+    <div class="list-body" id="list"></div>
   </details>
 
-  <footer>
-    <div class="credit-mini">
-      <svg width="18" height="18" viewBox="0 0 100 100" style="vertical-align:middle;margin-right:4px;">
-        <circle cx="50" cy="50" r="48" fill="none" stroke="var(--accent)" stroke-width="3" opacity=".3"/>
-        <circle cx="50" cy="50" r="32" fill="none" stroke="var(--accent)" stroke-width="3" opacity=".5"/>
-        <circle cx="50" cy="50" r="16" fill="var(--accent)"/>
-        <polyline points="40,50 47,58 62,42" fill="none" stroke="var(--bg-deep)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ====== PIE FIJO ====== -->
+  <div class="pie">
+    <div class="pie-logo">
+      <svg viewBox="0 0 52 52" fill="none" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="g0" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs>
+        <circle cx="19" cy="26" r="5.5" fill="url(#g0)"/>
+        <path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#g0)" stroke-width="3.4" stroke-linecap="round"/>
+        <path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#g0)" stroke-width="3" stroke-linecap="round" opacity=".55"/>
       </svg>
-      <span class="credit-label">Al Toque</span> · <span class="credit-tag">Soluciones de bolsillo</span>
+      <span class="etiqueta">altouch.com.ar</span>
     </div>
-  </footer>
+  </div>
 </div>
 
 <script>
 // ============================================================================
-// Datos de respaldo (por si la función de Netlify todavía no está desplegada,
-// o el sitio de El Litoral no responde en este momento). Se reemplazan apenas
-// carga bien la función /.netlify/functions/farmacias.
+// Datos de respaldo
 // ============================================================================
 const PHARMACIES_FALLBACK = [
   {name:"Acosta", addr:"Suipacha 2506", phone:"03424556677", lat:-31.6401411, lon:-60.7040322},
@@ -223,70 +275,53 @@ const PHARMACIES_FALLBACK = [
 ];
 
 const SF_CENTER = [-31.6333, -60.7000];
-const REFRESH_MS = 10 * 60 * 1000; // 10 minutos
+const REFRESH_MS = 10 * 60 * 1000;
 
 let map, userMarker, routeLine;
-let results = [];          // lista actual ordenada por distancia
+let results = [];
 let userLat = null, userLon = null;
-let selected = null;       // farmacia elegida manualmente en el listado (o null = la recomendada)
-let periodoLabel = null;
+let selected = null;
 
 function haversine(lat1, lon1, lat2, lon2){
   const R = 6371;
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLon = (lon2-lon1) * Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  const dLat = ((lat2-lat1)*Math.PI)/180;
+  const dLon = ((lon2-lon1)*Math.PI)/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos((lat1*Math.PI)/180)*Math.cos((lat2*Math.PI)/180)*Math.sin(dLon/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function setStatus(msg, showSpinner){
+function setStatus(msg, spin){
   const el = document.getElementById('statusLine');
   el.style.display = 'flex';
-  el.innerHTML = (showSpinner ? '<div class="spinner"></div>' : '') + '<span>'+msg+'</span>';
+  el.innerHTML = (spin ? '<div class="spinner"></div>' : '') + '<span>'+msg+'</span>';
 }
 function hideStatus(){ document.getElementById('statusLine').style.display = 'none'; }
-function showError(msg){
-  const box = document.getElementById('errorBox');
-  box.style.display = 'block';
-  box.textContent = msg;
-}
+function showError(msg){ const b = document.getElementById('errorBox'); b.style.display = 'block'; b.textContent = msg; }
 function hideError(){ document.getElementById('errorBox').style.display = 'none'; }
 
-// ---------------------------------------------------------------------------
-// Carga / auto-refresh del listado desde la función de Netlify
-// ---------------------------------------------------------------------------
+// ---- Data loading ----
 let CURRENT_PHARMACIES = PHARMACIES_FALLBACK;
 
 async function loadPharmacies(isBackground){
   const tag = document.getElementById('refreshTag');
   const tagText = document.getElementById('refreshTagText');
   try{
-    const resp = await fetch('/.netlify/functions/farmacias', {cache:'no-store'});
+    const resp = await fetch('https://farmaciaenturno.netlify.app/.netlify/functions/farmacias', {cache:'no-store'});
     const data = await resp.json();
     if(data.ok && data.pharmacies && data.pharmacies.length){
       CURRENT_PHARMACIES = data.pharmacies;
-      periodoLabel = data.periodo;
       tag.classList.add('live');
       const hora = new Date(data.updatedAt).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
-      tagText.textContent = `Turno actualizado en vivo · ${hora}` + (data.missingCount ? ` · ${data.missingCount} sin ubicar todavía` : '');
-    } else {
-      throw new Error(data.error || 'sin datos');
-    }
+      tagText.textContent = 'Turno actualizado · ' + hora + (data.missingCount ? ' · '+data.missingCount+' sin ubicar' : '');
+    } else { throw new Error(); }
   }catch(e){
     tag.classList.remove('live');
-    tagText.textContent = isBackground
-      ? 'No se pudo actualizar recién; mostrando el último listado'
-      : 'Función no disponible todavía: mostrando datos de referencia';
-    if(!isBackground) CURRENT_PHARMACIES = PHARMACIES_FALLBACK;
+    tagText.textContent = isBackground ? 'Mostrando el último listado' : 'Datos de referencia cargados';
   }
-
-  // Si ya sabemos dónde está el usuario, recalculamos con el dato fresco
   if(userLat !== null) recompute();
 }
 
-// ---------------------------------------------------------------------------
-// Flujo principal una vez que tenemos lat/lon del usuario
-// ---------------------------------------------------------------------------
+// ---- Location flow ----
 function useLocation(lat, lon){
   hideStatus(); hideError();
   document.getElementById('locateCard').style.display = 'none';
@@ -298,83 +333,51 @@ function recompute(){
   results = CURRENT_PHARMACIES
     .map(ph => ({...ph, dist: haversine(userLat, userLon, ph.lat, ph.lon)}))
     .sort((a,b) => a.dist - b.dist);
-
-  // si había una farmacia elegida a mano, la volvemos a ubicar en la nueva lista (por nombre)
   if(selected){
-    const stillThere = results.find(r => r.name === selected.name && r.addr === selected.addr);
-    selected = stillThere || null;
+    const still = results.find(r => r.name === selected.name && r.addr === selected.addr);
+    selected = still || null;
   }
-
   const target = selected || results[0];
-  renderRecommendation(target, !!selected);
+  renderReco(target, !!selected);
   renderMap(results, target);
   renderList(results, target);
 }
 
-// ---------------------------------------------------------------------------
-// Botón: geolocalización automática
-// ---------------------------------------------------------------------------
 function tryAutoLocate(){
   const btn = document.getElementById('locateBtn');
-  hideError();
-  btn.disabled = true;
-  setStatus('Obteniendo tu ubicación…', true);
-
+  hideError(); btn.disabled = true;
+  setStatus('Obteniendo ubicación…', true);
   if(!('geolocation' in navigator)){
     hideStatus(); btn.disabled = false;
-    showError('Tu navegador no permite geolocalización acá. Probá "Prefiero marcarla en el mapa".');
+    showError('Tu navegador no permite geolocalización acá. Usá "Marcar en el mapa".');
     return;
   }
-
   let settled = false;
-  const failSafe = setTimeout(() => {
-    if(settled) return;
-    settled = true;
-    hideStatus(); btn.disabled = false;
-    showError('La ubicación está tardando demasiado. Usá "Prefiero marcarla en el mapa" para tocar tu posición manualmente.');
-  }, 9000);
-
+  const fail = setTimeout(() => { if(settled) return; settled = true; hideStatus(); btn.disabled = false; showError('La ubicación está tardando. Probá "Marcar en el mapa".'); }, 9000);
   try{
     navigator.geolocation.getCurrentPosition((pos) => {
-      if(settled) return;
-      settled = true; clearTimeout(failSafe); btn.disabled = false;
+      if(settled) return; settled = true; clearTimeout(fail); btn.disabled = false;
       useLocation(pos.coords.latitude, pos.coords.longitude);
     }, (err) => {
-      if(settled) return;
-      settled = true; clearTimeout(failSafe);
-      hideStatus(); btn.disabled = false;
-      let msg = 'No pudimos obtener tu ubicación. Usá "Prefiero marcarla en el mapa" como alternativa.';
-      if(err.code === err.PERMISSION_DENIED){
-        msg = 'Se bloqueó el permiso de ubicación. Tocá "Prefiero marcarla en el mapa" para marcarla vos mismo.';
-      }
-      showError(msg);
+      if(settled) return; settled = true; clearTimeout(fail); hideStatus(); btn.disabled = false;
+      showError(err.code === err.PERMISSION_DENIED
+        ? 'Se bloqueó el permiso de ubicación. Tocá "Marcar en el mapa".'
+        : 'No se pudo obtener la ubicación. Probá "Marcar en el mapa".');
     }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
-  }catch(e){
-    if(!settled){
-      settled = true; clearTimeout(failSafe);
-      hideStatus(); btn.disabled = false;
-      showError('Ocurrió un error accediendo al GPS. Usá "Prefiero marcarla en el mapa".');
-    }
-  }
+  }catch(e){ if(!settled){ settled = true; clearTimeout(fail); hideStatus(); btn.disabled = false; showError('Error al acceder al GPS. Usá "Marcar en el mapa".'); }}
 }
 
-// ---------------------------------------------------------------------------
-// Botón: modo manual, tocar el mapa
-// ---------------------------------------------------------------------------
 function startManualMode(){
   hideError(); hideStatus();
   document.getElementById('locateCard').style.display = 'none';
   document.getElementById('mapCard').style.display = 'block';
   document.getElementById('mapHint').style.display = 'block';
-
   map = L.map('map').setView(SF_CENTER, 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:19}).addTo(map);
-
   CURRENT_PHARMACIES.forEach(ph => {
-    L.circleMarker([ph.lat, ph.lon], {radius:5, color:'#49ffa3', weight:1, fillOpacity:.8})
-      .addTo(map).bindPopup(`<b>${ph.name}</b><br>${ph.addr}`);
+    L.circleMarker([ph.lat, ph.lon], {radius:5, color:'#4CAF50', weight:1, fillOpacity:.8})
+      .addTo(map).bindPopup('<b>'+ph.name+'</b><br>'+ph.addr);
   });
-
   map.once('click', (e) => {
     document.getElementById('mapHint').style.display = 'none';
     map.remove();
@@ -383,12 +386,9 @@ function startManualMode(){
   });
 }
 
-// ---------------------------------------------------------------------------
-// Selección manual de una farmacia del listado (tocar para trazar ruta)
-// ---------------------------------------------------------------------------
 function selectPharmacy(ph){
   selected = ph;
-  renderRecommendation(ph, true);
+  renderReco(ph, true);
   renderMap(results, ph);
   renderList(results, ph);
   document.getElementById('recoCard').scrollIntoView({behavior:'smooth', block:'start'});
@@ -397,25 +397,21 @@ function selectPharmacy(ph){
 function backToRecommended(){
   selected = null;
   const top = results[0];
-  renderRecommendation(top, false);
+  renderReco(top, false);
   renderMap(results, top);
   renderList(results, top);
 }
 
-// ---------------------------------------------------------------------------
-// Render
-// ---------------------------------------------------------------------------
-function renderRecommendation(target, isManual){
+// ---- Render ----
+function renderReco(target, isManual){
   document.getElementById('recoCard').style.display = 'block';
   const badge = document.getElementById('recoBadge');
   const backBtn = document.getElementById('backToRecoBtn');
   if(isManual){
-    badge.className = 'badge manual';
-    badge.innerHTML = '<span class="dot"></span>Ruta a tu elección';
+    badge.className = 'badge badge-manual'; badge.innerHTML = '<span class="dot"></span>TU ELECCIÓN';
     backBtn.style.display = 'inline-block';
   }else{
-    badge.className = 'badge';
-    badge.innerHTML = '<span class="dot"></span>De turno ahora · te conviene ir acá';
+    badge.className = 'badge badge-reco'; badge.innerHTML = '<span class="dot"></span>MÁS CERCANA';
     backBtn.style.display = 'none';
   }
   document.getElementById('recoName').textContent = target.name;
@@ -423,96 +419,73 @@ function renderRecommendation(target, isManual){
   document.getElementById('recoDist').textContent = target.dist < 1 ? Math.round(target.dist*1000)+' m' : target.dist.toFixed(1)+' km';
   document.getElementById('recoTime').textContent = '~' + Math.max(2, Math.round(target.dist/0.35)) + ' min';
   document.getElementById('recoCallBtn').href = 'tel:+54' + target.phone;
-  document.getElementById('recoMapsBtn').href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${target.lat},${target.lon}`;
+  document.getElementById('recoMapsBtn').href = 'https://www.google.com/maps/dir/?api=1&origin='+userLat+','+userLon+'&destination='+target.lat+','+target.lon;
 }
 
 function renderMap(list, target){
   document.getElementById('mapCard').style.display = 'block';
   document.getElementById('mapHint').style.display = 'none';
-
-  if(map){ map.remove(); }
+  if(map){ try{ map.remove(); }catch(e){} }
   map = L.map('map', {zoomControl:true}).setView([userLat, userLon], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:19}).addTo(map);
-
   const userIcon = L.divIcon({
-    className:'', html:'<div style="width:16px;height:16px;border-radius:50%;background:#49ffa3;border:3px solid #04241a;box-shadow:0 0 10px #49ffa3;"></div>',
+    className:'', html:'<div style="width:16px;height:16px;border-radius:50%;background:#4CAF50;border:3px solid #0C1A24;box-shadow:0 0 10px rgba(76,175,80,.6);"></div>',
     iconSize:[16,16], iconAnchor:[8,8]
   });
-  userMarker = L.marker([userLat, userLon], {icon:userIcon}).addTo(map).bindPopup('Tu ubicación');
-
-  list.forEach((ph) => {
-    const isTarget = ph.name === target.name && ph.addr === target.addr;
+  L.marker([userLat, userLon], {icon:userIcon}).addTo(map).bindPopup('Tu ubicación');
+  list.forEach(ph => {
+    const isT = ph.name === target.name && ph.addr === target.addr;
     const icon = L.divIcon({
       className:'',
-      html: `<div style="background:${isTarget?'#ffb648':'#0f342c'};color:${isTarget?'#04241a':'#f2f7f4'};border:2px solid ${isTarget?'#ffb648':'#49ffa3'};border-radius:8px;padding:3px 7px;font:700 11px 'Space Grotesk',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4);">${isTarget?'★ ':''}${ph.name}</div>`,
+      html:'<div style="background:'+(isT?'#4CAF50':'#1A2B3C')+';color:'+(isT?'#fff':'#fff')+';border:2px solid '+(isT?'#4CAF50':'rgba(255,255,255,.25)')+';border-radius:8px;padding:3px 7px;font:700 11px \'M PLUS Rounded 1c\',sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.4);">'+(isT?'★ ':'')+ph.name+'</div>',
       iconSize:[0,0]
     });
-    const m = L.marker([ph.lat, ph.lon], {icon}).addTo(map)
-      .bindPopup(`<b>${ph.name}</b><br>${ph.addr}<br>${ph.dist.toFixed(1)} km`);
-    m.on('click', () => selectPharmacy(ph));
+    L.marker([ph.lat, ph.lon], {icon}).addTo(map)
+      .bindPopup('<b>'+ph.name+'</b><br>'+ph.addr+'<br>'+ph.dist.toFixed(1)+' km')
+      .on('click', () => selectPharmacy(ph));
   });
-
-  routeLine = L.polyline([[userLat, userLon], [target.lat, target.lon]], {color:'#49ffa3', weight:3, opacity:.6, dashArray:'6 8'}).addTo(map);
+  routeLine = L.polyline([[userLat, userLon], [target.lat, target.lon]], {color:'#4CAF50', weight:3, opacity:.6, dashArray:'6 8'}).addTo(map);
   map.fitBounds(routeLine.getBounds(), {padding:[40,40]});
-
-  fetch(`https://router.project-osrm.org/route/v1/driving/${userLon},${userLat};${target.lon},${target.lat}?overview=full&geometries=geojson`)
+  fetch('https://router.project-osrm.org/route/v1/driving/'+userLon+','+userLat+';'+target.lon+','+target.lat+'?overview=full&geometries=geojson')
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(data => {
       if(data.routes && data.routes[0]){
         const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
         map.removeLayer(routeLine);
-        routeLine = L.polyline(coords, {color:'#49ffa3', weight:4, opacity:.9}).addTo(map);
+        routeLine = L.polyline(coords, {color:'#4CAF50', weight:4, opacity:.9}).addTo(map);
         map.fitBounds(routeLine.getBounds(), {padding:[40,40]});
       }
-    })
-    .catch(() => { /* sin conexión al ruteo: se mantiene la línea recta */ });
+    }).catch(() => {});
 }
 
 function renderList(list, target){
   const listEl = document.getElementById('list');
   document.getElementById('listDetails').style.display = 'block';
-  document.getElementById('listTitle').textContent = `Ver todas las farmacias de turno (${list.length})`;
+  document.getElementById('listTitle').textContent = 'Todas las de turno ('+list.length+')';
   listEl.innerHTML = '';
-  list.forEach((ph) => {
+  list.forEach(ph => {
     const isTop = ph === list[0];
-    const isSelected = ph.name === target.name && ph.addr === target.addr;
+    const isSel = ph.name === target.name && ph.addr === target.addr;
     const div = document.createElement('div');
-    div.className = 'item' + (isTop ? ' reco' : '') + (isSelected && !isTop ? ' selected' : '');
-    div.innerHTML = `
-      <div>
-        <div class="name">${isTop ? '★ ' : ''}${ph.name}</div>
-        <div class="sub">${ph.addr}</div>
-        <a class="call" href="tel:+54${ph.phone}">📞 ${ph.phone}</a>
-        <div class="tap-hint">Tocá para trazar la ruta hasta acá</div>
-      </div>
-      <div class="dist">${ph.dist < 1 ? Math.round(ph.dist*1000)+' m' : ph.dist.toFixed(1)+' km'}</div>
-    `;
-    div.addEventListener('click', (ev) => {
-      if(ev.target.closest('.call')) return; // dejar que el link de llamar funcione normal
-      selectPharmacy(ph);
-    });
+    div.className = 'item' + (isTop ? ' highlight' : '') + (isSel && !isTop ? ' selected' : '');
+    div.innerHTML = '<div><div class="name">'+(isTop?'★ ':'')+ph.name+'</div><div class="sub">'+ph.addr+'</div><a class="call" href="tel:+54'+ph.phone+'">'+ph.phone+'</a><div class="tap-hint">Tocá para trazar ruta</div></div><div class="dist">'+(ph.dist<1?Math.round(ph.dist*1000)+' m':ph.dist.toFixed(1)+' km')+'</div>';
+    div.addEventListener('click', (ev) => { if(ev.target.closest('.call')) return; selectPharmacy(ph); });
     listEl.appendChild(div);
   });
 }
 
+// ---- Event listeners ----
 document.getElementById('locateBtn').addEventListener('click', tryAutoLocate);
 document.getElementById('manualBtn').addEventListener('click', startManualMode);
 document.getElementById('backToRecoBtn').addEventListener('click', backToRecommended);
 
-// ---------------------------------------------------------------------------
-// Detección de horario: ¿es turno o es horario normal?
-// Turnos: lunes a viernes de 20:00 a 08:00 (noche) + sábados y domingos todo el día.
-// En horario normal (lu-vi 08:00 a 20:00) mostramos el panel "estás en horario normal".
-// ---------------------------------------------------------------------------
+// ---- Horario ----
 function isTurnoTime(){
   const now = new Date();
-  const day = now.getDay();     // 0=domingo, 6=sábado
+  const day = now.getDay();
   const hour = now.getHours();
-  // Fines de semana → siempre turno
   if(day === 0 || day === 6) return true;
-  // Noche (antes de las 8 o después de las 20) → turno
   if(hour < 8 || hour >= 20) return true;
-  // Lu-Vi entre 8 y 20 → horario normal
   return false;
 }
 
@@ -522,7 +495,7 @@ function initView(){
   if(isTurnoTime() || forceTurnoView){
     document.getElementById('daytimeCard').style.display = 'none';
     document.getElementById('locateCard').style.display = '';
-  } else {
+  }else{
     document.getElementById('locateCard').style.display = 'none';
     document.getElementById('daytimeCard').style.display = 'block';
   }
@@ -534,17 +507,74 @@ document.getElementById('showTurnoAnyway').addEventListener('click', () => {
   document.getElementById('locateCard').style.display = '';
 });
 
-// Carga inicial + auto-refresh cada 10 minutos
 loadPharmacies(false);
 setInterval(() => loadPharmacies(true), REFRESH_MS);
 initView();
 
-// Service worker (PWA instalable)
 if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
 </script>
+<div id="altouch-ad-slot" aria-hidden="false"></div>
+
+<style>
+  #altouch-ad-slot{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    max-width:440px;
+    margin:0 auto;
+    z-index:40;
+    display:none;
+  }
+  #altouch-ad-slot.is-visible{ display:block; }
+  .altouch-ad{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    padding:9px 18px calc(9px + env(safe-area-inset-bottom));
+    background:var(--bg-2, #22384B);
+    border-top:1px solid var(--border, rgba(255,255,255,.12));
+    text-decoration:none;
+  }
+  .altouch-ad-eyebrow{
+    font-family:var(--mono, 'JetBrains Mono', ui-monospace, monospace);
+    font-weight:600;
+    font-size:10px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--faint, rgba(255,255,255,.38));
+  }
+  .altouch-ad-text{
+    font-family:var(--font, 'M PLUS Rounded 1c', system-ui, sans-serif);
+    font-size:13px;
+    color:var(--dim, rgba(255,255,255,.62));
+  }
+</style>
+
+<script>
+(function () {
+  var APP_SLUG = 'turnocercano'; // <-- cambiar por app: 'nmclb' | 'cryptogest' | 'findes' | ...
+
+  fetch('/ads-config.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (cfg) {
+      if (!cfg) return;
+      var conf = cfg[APP_SLUG];
+      if (!conf || !conf.enabled) return;
+
+      var slot = document.getElementById('altouch-ad-slot');
+      slot.innerHTML =
+        '<a class="altouch-ad" href="' + conf.url + '" target="_blank" rel="noopener">' +
+          '<span class="altouch-ad-eyebrow">' + (conf.label || 'TAMBIÉN EN ALTOUCH') + '</span>' +
+          '<span class="altouch-ad-text">' + conf.text + '</span>' +
+        '</a>';
+      slot.classList.add('is-visible');
+    })
+    .catch(function () {
+      // sin conexión, o CSP lo bloquea: la app sigue como si esto no existiera
+    });
+})();
+</script>
+
 </body>
 </html>
