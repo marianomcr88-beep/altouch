@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="22">
+<meta name="app-version" content="23">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -1340,13 +1340,24 @@ async function bootApp(){
       setTimeout(async ()=>{
         try{
           const ok = await verifyBiometric();
-          if(ok){ initHome(); go('s-home'); }
+          if(ok && cryptoKey){ initHome(); go('s-home'); }
+          else if(ok && !cryptoKey){
+            // La huella confirma que sos vos, pero sin la clave en memoria
+            // no se puede descifrar nada — pedimos la contraseña una vez más.
+            toast('Ingresá tu contraseña para desbloquear tus datos');
+            go('s-login');
+          }
         }catch(e){}
       }, 500);
       return;
     }
 
-    if(hasSession || currentUser){ initHome(); go('s-home'); return; }
+    if((hasSession || currentUser) && cryptoKey){ initHome(); go('s-home'); return; }
+    if(hasSession && !cryptoKey){
+      toast('Ingresá tu contraseña para desbloquear tus datos');
+      go('s-login');
+      return;
+    }
 
     go('s-login');
   }catch(err){
@@ -1360,7 +1371,11 @@ async function unlockWithBio(){
   btn.textContent = 'Verificando…';
   const ok = await verifyBiometric();
   btn.textContent = 'Desbloquear con huella';
-  if(ok){ initHome(); go('s-home'); }
+  if(ok && cryptoKey){ initHome(); go('s-home'); }
+  else if(ok && !cryptoKey){
+    toast('Ingresá tu contraseña para desbloquear tus datos');
+    go('s-login');
+  }
   else toast('No se pudo verificar. Probá de nuevo.');
 }
 
@@ -1448,7 +1463,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -3755,6 +3770,10 @@ window.addEventListener('firebase-ready', ()=>{
 // Sube el estado local completo a la nube
 async function pushToCloud(){
   if(!syncEnabled || !currentUser || syncing) return;
+  if(!cryptoKey){
+    console.warn('pushToCloud: sin clave de cifrado todavía, se omite para no pisar la nube con datos sin descifrar.');
+    return;
+  }
   try{
     syncing = true;
     updateSyncBadge('up');
@@ -3788,6 +3807,10 @@ async function pushToCloud(){
 // Baja el estado de la nube (solo si es más nuevo)
 async function pullFromCloud(){
   if(!currentUser) return;
+  if(!cryptoKey){
+    console.warn('pullFromCloud: sin clave de cifrado todavía, se omite para no pisar datos con la versión cifrada.');
+    return;
+  }
   try{
     updateSyncBadge('down');
     const snap = await FB.get(FB.ref(FB.db, 'users/'+currentUser.uid+'/data'));
