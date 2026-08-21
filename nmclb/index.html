@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="24">
+<meta name="app-version" content="25">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -1463,7 +1463,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -3555,9 +3555,14 @@ async function deriveKey(secret, saltStr){
   );
 }
 
-// Cifra un texto → string base64 con IV incluido
+// Cifra un texto → string base64 con IV incluido.
+// Idempotente: si el valor ya viene cifrado (empieza con ENC_PREFIX), lo
+// devuelve tal cual en vez de volver a cifrarlo encima. Esto es lo que evita
+// que un dato termine envuelto en capas repetidas (enc1:enc1:enc1:...) si
+// por algún motivo pasa dos veces por acá antes de guardarse.
 async function encryptText(plain, key){
   if(plain == null) return plain;
+  if(typeof plain === 'string' && plain.startsWith(ENC_PREFIX)) return plain;
   const k = key || cryptoKey;
   if(!k) return plain;
   try{
@@ -3615,6 +3620,37 @@ const NUMERIC_FIELDS = {
   fx_accounts:       ['amount'],
   crypto_accounts:   ['amount'],
 };
+
+// ── Valla de seguridad para la sincronización ────────────────────────────
+// Antes de pisar un dato local con lo que baja de la nube, chequeamos que lo
+// entrante no sea una pérdida evidente de información (todo en cero, o muchos
+// menos ítems que antes). Si algo se ve sospechoso, NO lo aplicamos solos:
+// dejamos lo local como está y avisamos, para que la persona decida.
+function sumField(arr, field){
+  if(!Array.isArray(arr)) return 0;
+  return arr.reduce((s,it)=> s + (Number(it && it[field]) || 0), 0);
+}
+function isSuspiciousSync(kind, localVal, remoteVal){
+  try{
+    if(Array.isArray(localVal) && localVal.length > 0){
+      if(!Array.isArray(remoteVal) || remoteVal.length === 0) return true;
+      if(localVal.length >= 4 && remoteVal.length < localVal.length * 0.5) return true;
+      const numField = (NUMERIC_FIELDS[kind]||[])[0];
+      if(numField){
+        const localSum = sumField(localVal, numField);
+        const remoteSum = sumField(remoteVal, numField);
+        if(localSum > 0 && remoteSum === 0) return true;
+      }
+    }
+    if(kind === 'wallet_data' && localVal && typeof localVal === 'object'){
+      const localCash = Number(localVal.cash) || 0;
+      const remoteCash = (remoteVal && typeof remoteVal === 'object') ? (Number(remoteVal.cash) || 0) : 0;
+      if(localCash > 0 && remoteCash === 0) return true;
+    }
+  }catch(e){ /* si el chequeo falla, no bloqueamos el sync por eso */ }
+  return false;
+}
+let syncConflicts = [];
 
 // Cifra un objeto/array completo antes de subirlo
 async function encryptPayload(kind, value){
@@ -3830,11 +3866,19 @@ async function pullFromCloud(){
       const localTs  = parseInt(localStorage.getItem('nmclb_last_sync')||'0');
       const remoteTs = d.updatedAt || 0;
       if(remoteTs > localTs){
+        const heldBack = [];
         for(const k of SYNC_KEYS){
           const kind = k.replace('nmclb_','');
           if(d[kind] !== undefined && d[kind] !== null){
             const val = d.encrypted ? await decryptPayload(kind, d[kind]) : d[kind];
-            if(val !== null) localStorage.setItem(k, JSON.stringify(val));
+            if(val !== null){
+              const localVal = JSON.parse(localStorage.getItem(k) || 'null');
+              if(isSuspiciousSync(kind, localVal, val)){
+                heldBack.push(kind);
+                continue;
+              }
+              localStorage.setItem(k, JSON.stringify(val));
+            }
           }
         }
         if(d.name){
@@ -3843,6 +3887,10 @@ async function pullFromCloud(){
         }
         localStorage.setItem('nmclb_last_sync', String(remoteTs));
         refreshAllScreens();
+        if(heldBack.length){
+          syncConflicts = [...new Set([...syncConflicts, ...heldBack])];
+          showSyncConflictBanner();
+        }
       }
 
       // Migración: si estaba sin cifrar y ahora tenemos clave, cifrarlo
@@ -3872,16 +3920,29 @@ function listenToCloud(){
     const d = snap.val();
     const localTs = parseInt(localStorage.getItem('nmclb_last_sync')||'0');
     if((d.updatedAt||0) > localTs){
+      const heldBack = [];
       for(const k of SYNC_KEYS){
         const kind = k.replace('nmclb_','');
         if(d[kind] !== undefined && d[kind] !== null){
           const val = d.encrypted ? await decryptPayload(kind, d[kind]) : d[kind];
-          if(val !== null) localStorage.setItem(k, JSON.stringify(val));
+          if(val !== null){
+            const localVal = JSON.parse(localStorage.getItem(k) || 'null');
+            if(isSuspiciousSync(kind, localVal, val)){
+              heldBack.push(kind);
+              continue;
+            }
+            localStorage.setItem(k, JSON.stringify(val));
+          }
         }
       }
       localStorage.setItem('nmclb_last_sync', String(d.updatedAt));
       refreshAllScreens();
-      toast('🔄 Datos actualizados');
+      if(heldBack.length){
+        syncConflicts = [...new Set([...syncConflicts, ...heldBack])];
+        showSyncConflictBanner();
+      } else {
+        toast('🔄 Datos actualizados');
+      }
     }
   });
 }
@@ -5699,6 +5760,62 @@ function showUpdateBanner(){
     <button onclick="applyUpdate()" style="background:rgba(0,0,0,.22);border:none;color:#fff;border-radius:9px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">Actualizar</button>
     <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 4px;">×</button>`;
   document.getElementById('app').appendChild(b);
+}
+
+// ── Banner de conflicto de sincronización ────────────────────────────────
+const SYNC_KIND_LABELS = {
+  wallet_data:      'Efectivo',
+  digital_accounts: 'Cuentas digitales',
+  invest_accounts:  'Inversiones',
+  fx_accounts:      'Moneda extranjera',
+  crypto_accounts:  'Cripto',
+  expenses:         'Gastos',
+  settlements:      'Liquidaciones',
+  trash:            'Papelera',
+  archive:          'Archivo',
+};
+function showSyncConflictBanner(){
+  let b = document.getElementById('sync-conflict-banner');
+  if(!b){
+    b = document.createElement('div');
+    b.id = 'sync-conflict-banner';
+    b.style.cssText = 'position:absolute;top:0;left:0;right:0;background:var(--red);color:#fff;padding:12px 16px;display:flex;flex-direction:column;gap:8px;z-index:301;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.3);';
+    document.getElementById('app').appendChild(b);
+  }
+  const names = syncConflicts.map(k=>SYNC_KIND_LABELS[k]||k).join(', ');
+  b.innerHTML = `<span>⚠️ La nube tiene datos de ${names} que parecen incompletos frente a lo que ves acá (menos ítems o todo en cero). No los aplicamos solos, para no pisar algo bueno.</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="forceApplySyncConflicts()" style="background:rgba(0,0,0,.22);border:none;color:#fff;border-radius:9px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">Aplicar de la nube igual</button>
+      <button onclick="dismissSyncConflicts()" style="background:none;border:1px solid rgba(255,255,255,.6);color:#fff;border-radius:9px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">Mantener lo que veo acá</button>
+    </div>`;
+}
+function hideSyncConflictBanner(){
+  const b = document.getElementById('sync-conflict-banner');
+  if(b) b.remove();
+}
+async function forceApplySyncConflicts(){
+  if(!currentUser || !cryptoKey || !syncConflicts.length) return;
+  try{
+    const snap = await FB.get(FB.ref(FB.db, 'users/'+currentUser.uid+'/data'));
+    if(!snap.exists()) return;
+    const d = snap.val();
+    for(const kind of syncConflicts){
+      const k = 'nmclb_'+kind;
+      if(d[kind] !== undefined && d[kind] !== null){
+        const val = d.encrypted ? await decryptPayload(kind, d[kind]) : d[kind];
+        if(val !== null) localStorage.setItem(k, JSON.stringify(val));
+      }
+    }
+    syncConflicts = [];
+    hideSyncConflictBanner();
+    refreshAllScreens();
+    toast('✓ Datos de la nube aplicados');
+  }catch(e){ console.error('forceApplySyncConflicts', e); toast('No se pudo aplicar'); }
+}
+function dismissSyncConflicts(){
+  syncConflicts = [];
+  hideSyncConflictBanner();
+  toast('Se mantuvo lo que tenías acá');
 }
 
 async function applyUpdate(){
