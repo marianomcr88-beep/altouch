@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="25">
+<meta name="app-version" content="26">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -812,7 +812,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: perfil -->
   <div id="modal-profile" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:80;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="display:flex;align-items:center;gap:11px;margin-bottom:18px;">
         <button onclick="closeModal('modal-profile')" style="background:var(--panel);border:1px solid var(--border);width:36px;height:36px;border-radius:10px;font-size:19px;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">‹</button>
         <h2 style="flex:1;">Mi perfil</h2>
@@ -886,7 +886,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: editar movimiento -->
   <div id="modal-edit-mov" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:80;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
         <h2>Editar movimiento</h2>
         <button onclick="closeModal('modal-edit-mov')" style="background:var(--panel);border:1px solid var(--border);width:34px;height:34px;border-radius:9px;font-size:18px;color:var(--text);cursor:pointer;">×</button>
@@ -897,7 +897,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: input de monto genérico (reemplaza prompt) -->
   <div id="modal-amt" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.78);z-index:200;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <h2 id="amt-modal-title" style="margin-bottom:16px;">Monto</h2>
       <div class="field">
         <label class="label" id="amt-modal-label">Monto ($)</label>
@@ -915,7 +915,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: input de texto genérico (reemplaza prompt de texto) -->
   <div id="modal-txt" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.78);z-index:200;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <h2 id="txt-modal-title" style="margin-bottom:16px;">Ingresá un dato</h2>
       <div class="field">
         <input class="input" id="txt-modal-input" placeholder="">
@@ -929,7 +929,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: confirmación genérica (reemplaza confirm) -->
   <div id="modal-confirm" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.78);z-index:200;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;text-align:center;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;text-align:center;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <p style="font-size:15px;font-weight:600;margin-bottom:18px;" id="confirm-modal-text">¿Estás seguro?</p>
       <div class="stack">
         <button class="btn" id="confirm-yes-btn" style="background:var(--red);color:#fff;" onclick="confirmYes()">Confirmar</button>
@@ -940,7 +940,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: Ingreso / Egreso -->
   <div id="modal-mov" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:60;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h2 id="mov-modal-title">Registrar movimiento</h2>
         <button onclick="closeModal('modal-mov')" style="background:var(--panel);border:1px solid var(--border);width:34px;height:34px;border-radius:9px;font-size:18px;color:var(--text);cursor:pointer;">×</button>
@@ -951,7 +951,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: agregar cuenta / inversión -->
   <div id="modal-account" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:50;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;" id="modal-inner">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;" id="modal-inner">
       <h2 id="modal-title" style="margin-bottom:16px;">Agregar</h2>
       <div id="modal-body"></div>
     </div>
@@ -959,7 +959,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: detalle inversión -->
   <div id="modal-invest" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:50;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h2 id="inv-modal-title">Inversión</h2>
         <button onclick="closeModal('modal-invest')" style="background:var(--panel);border:1px solid var(--border);width:34px;height:34px;border-radius:9px;font-size:18px;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
@@ -1045,7 +1045,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
   <!-- MODAL: saldar deuda -->
   <div id="modal-settle" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:80;align-items:flex-end;">
-    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;">
+    <div style="background:var(--bg-1);border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));width:100%;max-width:440px;margin:0 auto;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h2 id="settle-title">Saldar cuenta</h2>
         <button onclick="closeModal('modal-settle')" style="background:var(--panel);border:1px solid var(--border);width:34px;height:34px;border-radius:9px;font-size:18px;color:var(--text);cursor:pointer;">×</button>
@@ -1463,7 +1463,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
