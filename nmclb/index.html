@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="23">
+<meta name="app-version" content="24">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -1463,7 +1463,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -3571,18 +3571,29 @@ async function encryptText(plain, key){
   }catch(e){ return plain; }
 }
 
-// Descifra un string producido por encryptText
+// Descifra un string producido por encryptText.
+// Pela capas repetidas si el resultado sigue empezando con ENC_PREFIX
+// (puede pasar si un dato quedó cifrado dos veces por una sincronización
+// vieja sin clave lista). Tope de seguridad para no entrar en loop infinito.
 async function decryptText(cipher, key){
   if(typeof cipher !== 'string' || !cipher.startsWith(ENC_PREFIX)) return cipher;
   const k = key || cryptoKey;
   if(!k) return null;
-  try{
-    const raw = Uint8Array.from(atob(cipher.slice(ENC_PREFIX.length)), c=>c.charCodeAt(0));
-    const iv = raw.slice(0,12);
-    const data = raw.slice(12);
-    const buf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, k, data);
-    return new TextDecoder().decode(buf);
-  }catch(e){ return null; }
+  let result = cipher;
+  let capas = 0;
+  while(typeof result === 'string' && result.startsWith(ENC_PREFIX) && capas < 6){
+    capas++;
+    try{
+      const raw = Uint8Array.from(atob(result.slice(ENC_PREFIX.length)), c=>c.charCodeAt(0));
+      const iv = raw.slice(0,12);
+      const data = raw.slice(12);
+      const buf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, k, data);
+      result = new TextDecoder().decode(buf);
+    }catch(e){
+      return capas > 1 ? result : null;
+    }
+  }
+  return result;
 }
 
 // Campos sensibles por tipo de dato
