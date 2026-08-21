@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="34">
+<meta name="app-version" content="35">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -776,6 +776,10 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
         </div>
       </div>
     </div>
+
+    <!-- ÚLTIMOS MOVIMIENTOS -->
+    <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin:18px 0 10px;">Últimos movimientos</p>
+    <div id="w-movements" class="lwrap"></div>
 
     <button class="nav-tile" onclick="go('s-gastos')" style="margin-bottom:6px;">
       <span class="nt-icon">📊</span>
@@ -1865,7 +1869,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 34;
+const APP_VERSION = 35;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -3797,63 +3801,6 @@ function buildGSourceFilter(){
 
 function getExpenses(){ return JSON.parse(localStorage.getItem('nmclb_expenses')||'[]'); }
 function saveExpenses(list){ saveAndSync('nmclb_expenses', list); }
-
-function addExpense(){
-  const desc   = document.getElementById('g-desc').value.trim();
-  const amount = parseFloat(document.getElementById('g-amount').value);
-  const source = document.getElementById('g-source').value;
-
-  if(!desc){ toast('Agregá una descripción ✏️'); return; }
-  if(!amount||amount<=0){ toast('Ingresá un monto válido 💸'); return; }
-
-  if(selGCat==='compartido'){
-    askText('¿Con quién compartís este gasto?', 'Ej: Jesica', (sharedWith)=>{
-      finalizeExpense(desc, amount, source, sharedWith);
-    });
-  } else {
-    finalizeExpense(desc, amount, source, null);
-  }
-}
-
-function finalizeExpense(desc, amount, source, sharedWith){
-  const expense = {
-    id: Date.now(),
-    date: new Date().toISOString(),
-    desc, amount,
-    cat: selGCat,
-    source,
-    sharedWith,
-  };
-
-  const list = getExpenses();
-  list.unshift(expense);
-  saveExpenses(list);
-
-  // Descontar del bolsillo correspondiente
-  if(source==='cash'){
-    const data = getWalletData();
-    data.cash = Math.max(0, data.cash - amount);
-    data.cashHistory = data.cashHistory||[];
-    data.cashHistory.unshift({date:new Date().toISOString(), desc, amount:-amount});
-    saveAndSync('nmclb_wallet_data', data);
-  } else if(source.startsWith('digital:')){
-    deductDigital(source.slice(8), amount, desc);
-  }
-
-  // Sumar al acumulado de gastos del mes
-  const currentSpent = parseFloat(localStorage.getItem('nmclb_spent_month')||'0');
-  localStorage.setItem('nmclb_spent_month', String(currentSpent+amount));
-
-  document.getElementById('g-desc').value='';
-  document.getElementById('g-amount').value='';
-
-  renderExpenseList();
-  initWallet();
-  loadDashboardData();
-
-  const catObj = CATS.find(c=>c.id===selGCat);
-  toast(`${catObj.i} $${fmt(amount)} registrado`);
-}
 
 function renderExpenseList(){
   const list = getExpenses();
