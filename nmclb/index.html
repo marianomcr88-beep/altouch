@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="33">
+<meta name="app-version" content="34">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -1865,7 +1865,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 33;
+const APP_VERSION = 34;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2614,7 +2614,15 @@ function setWalletField(id, val){
 }
 
 function getWalletData(){
-  return JSON.parse(localStorage.getItem('nmclb_wallet_data') || '{"cash":0,"cashHistory":[]}');
+  let d;
+  try{ d = JSON.parse(localStorage.getItem('nmclb_wallet_data') || '{"cash":0,"cashHistory":[]}'); }
+  catch(e){ d = {}; }
+  if(d == null || typeof d !== 'object') d = {};
+  // Nunca dejar pasar un cash no-numérico: contaminaría cualquier suma que
+  // lo incluya (undefined/NaN + número = NaN en toda la cadena).
+  d.cash = Number(d.cash) || 0;
+  if(!Array.isArray(d.cashHistory)) d.cashHistory = [];
+  return d;
 }
 
 function getAccounts(type){
