@@ -107,19 +107,20 @@ a{color:inherit;text-decoration:none;}
 .cat-sub{font-size:13px;color:var(--faint);margin-top:2px;}
 
 .grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
-  gap:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 
 .tile{
   display:flex;
-  gap:14px;
-  align-items:flex-start;
+  gap:16px;
+  align-items:center;
   background:var(--bg-1);
   border:1px solid var(--border);
   border-radius:var(--r);
-  padding:16px;
+  padding:16px 18px;
+  width:100%;
   transition:transform .16s ease, border-color .16s ease, background .16s ease;
 }
 .tile:hover,.tile:focus-visible{
@@ -127,14 +128,20 @@ a{color:inherit;text-decoration:none;}
   border-color:var(--border-2);
   background:var(--bg-2);
 }
-.tile .icon{width:44px;height:44px;flex-shrink:0;}
-.tile .body{min-width:0;}
-.tile .name{font-weight:700;font-size:16px;margin-bottom:3px;}
-.tile .blurb{font-size:13px;color:var(--dim);line-height:1.4;}
+.tile .icon{width:48px;height:48px;flex-shrink:0;}
+.tile .body{min-width:0;flex:1;}
+.tile .name{font-weight:800;font-size:17px;margin-bottom:4px;letter-spacing:-.01em;}
+.tile .blurb{
+  font-size:13px;color:var(--dim);line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.tile .arrow{flex-shrink:0;font-size:20px;color:var(--faint);transition:transform .16s ease;}
+.tile:hover .arrow{transform:translateX(3px);}
 
 /* placeholder de próxima app — sin link, más tenue */
 .tile.soon{opacity:.5;cursor:default;}
 .tile.soon:hover{transform:none;border-color:var(--border);background:var(--bg-1);}
+.tile.soon:hover .arrow{transform:none;}
 
 /* ── footer ── */
 footer{
@@ -207,9 +214,10 @@ footer{
                 stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <div class="body">
-          <div class="name">NMCLB</div>
-          <p class="blurb">Sumá tus cuentas y wallets, y fijate si el total cierra.</p>
+          <div class="name">No me cierran los balances</div>
+          <p class="blurb">Anotá dónde está cada peso — efectivo, digital, inversiones, cripto — y compartí gastos con quien haga falta.</p>
         </div>
+        <span class="arrow" aria-hidden="true">›</span>
       </a>
 
       <a class="tile" href="cryptogest/">
@@ -219,8 +227,9 @@ footer{
         </svg>
         <div class="body">
           <div class="name">CryptoGest</div>
-          <p class="blurb">Tus compras de cripto, con la ganancia calculada en pesos.</p>
+          <p class="blurb">Registrá tus compras de cripto y mirá cuánto ganaste o perdiste en pesos, sin hojas de cálculo.</p>
         </div>
+        <span class="arrow" aria-hidden="true">›</span>
       </a>
 
       <a class="tile" href="turnocercano/">
@@ -229,9 +238,10 @@ footer{
           <path d="M21 9 H31 V21 H43 V31 H31 V43 H21 V31 H9 V21 H21 Z" fill="#fff"/>
         </svg>
         <div class="body">
-          <div class="name">Turno cercano</div>
-          <p class="blurb">La farmacia de turno más cercana en Santa Fe, ahora.</p>
+          <div class="name">FARMACIA DE TURNO</div>
+          <p class="blurb">Cuando necesitás una farmacia ya, te mostramos cuál está de turno y más cerca tuyo.</p>
         </div>
+        <span class="arrow" aria-hidden="true">›</span>
       </a>
 
     </div>
@@ -252,8 +262,9 @@ footer{
         </svg>
         <div class="body">
           <div class="name">Findes</div>
-          <p class="blurb">Cuánta vida te queda, en fines de semana y veranos.</p>
+          <p class="blurb">Cuánta vida te queda, contada en fines de semana y veranos — para no perderte los que importan.</p>
         </div>
+        <span class="arrow" aria-hidden="true">›</span>
       </a>
 
     </div>
