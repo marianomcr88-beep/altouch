@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="30">
+<meta name="app-version" content="32">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -1865,7 +1865,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 30;
+const APP_VERSION = 32;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2471,9 +2471,25 @@ function getTotalIncludes(){
 function toggleTotalInclude(key){
   const inc = getTotalIncludes();
   inc[key] = !inc[key];
-  saveAndSync('nmclb_total_includes', inc);
+  localStorage.setItem('nmclb_total_includes', JSON.stringify(inc));
   document.getElementById('tt-'+key).classList.toggle('on', inc[key]);
   initWallet();
+
+  // Escritura puntual e inmediata (no espera el paquete completo de 800ms):
+  // así ninguna otra sesión que sincronice en paralelo puede pisar justo
+  // este campo con una copia vieja antes de que llegue el push general.
+  if(syncEnabled && currentUser && cryptoKey){
+    (async ()=>{
+      try{
+        const encoded = await encryptPayload('total_includes', inc);
+        await FB.update(FB.ref(FB.db, 'users/'+currentUser.uid+'/data'), {
+          total_includes: encoded,
+          updatedAt: Date.now()
+        });
+        localStorage.setItem('nmclb_last_sync', String(Date.now()));
+      }catch(e){ console.error('toggleTotalInclude sync', e); }
+    })();
+  }
 }
 
 // ── Total consolidado: ARS / USD ─────────────────────────────────────────
@@ -4311,11 +4327,52 @@ window.addEventListener('firebase-ready', ()=>{
       localStorage.setItem('nmclb_email', user.email||'');
       await pullFromCloud();
       listenToCloud();
+      claimSession();
       await discoverConnections();
       listenToShared();
     }
   });
 });
+
+// ── Sesión única: abrir la cuenta en un lugar nuevo cierra cualquier otro ──
+// Simple a propósito: un solo campo en la nube con un ID al azar por
+// dispositivo/pestaña. El que llega último "gana" el campo; a los demás,
+// su propio escuchador les avisa que ya no son la sesión activa y se
+// desloguean solos, sin preguntar — así ninguna sesión vieja puede pisar
+// datos frescos de otra por accidente.
+let mySessionId = null;
+let sessionListenerActive = false;
+function claimSession(){
+  if(!currentUser) return;
+  mySessionId = 'sess-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  FB.set(FB.ref(FB.db, 'users/'+currentUser.uid+'/activeSession'), {
+    id: mySessionId, at: Date.now()
+  }).catch(()=>{});
+
+  if(sessionListenerActive) return;
+  sessionListenerActive = true;
+  FB.onValue(FB.ref(FB.db, 'users/'+currentUser.uid+'/activeSession'), (snap)=>{
+    const remote = snap.exists() ? snap.val() : null;
+    if(remote && mySessionId && remote.id !== mySessionId){
+      handleSessionTakenOver();
+    }
+  });
+}
+
+function handleSessionTakenOver(){
+  if(window._sessionKickedOut) return;
+  window._sessionKickedOut = true;
+  toast('📱 Se abrió tu cuenta en otro dispositivo — esta sesión se cierra');
+  setTimeout(forceLogoutSession, 1400);
+}
+
+async function forceLogoutSession(){
+  try{ if(fbReady) await FB.signOutFn(FB.auth); }catch(e){}
+  localStorage.removeItem('nmclb_session');
+  localStorage.removeItem('nmclb_uid');
+  currentUser = null; syncEnabled = false; cryptoKey = null;
+  go('s-welcome');
+}
 
 // Sube el estado local completo a la nube
 async function pushToCloud(){
