@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="35">
+<meta name="app-version" content="36">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -335,9 +335,16 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
     <div class="field">
       <label class="label">Contraseña</label>
       <div class="input-icon-wrap">
-        <input class="input" id="r-pass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+        <input class="input" id="r-pass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" oninput="updatePasswordStrength()">
         <span class="iico" onclick="togglePass('r-pass',this)">👁</span>
       </div>
+      <div id="r-pass-meter" style="display:none;margin-top:8px;">
+        <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden;">
+          <div id="r-pass-bar" style="height:100%;width:0%;border-radius:3px;transition:width .2s,background .2s;"></div>
+        </div>
+        <p id="r-pass-label" style="font-size:11px;margin-top:5px;font-weight:700;"></p>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5;">🔒 Como tus datos se cifran de punta a punta, la seguridad de todo depende de esta contraseña — nosotros no podemos recuperarla por vos si la olvidás (para eso sirve la frase de recuperación del paso siguiente).</p>
     </div>
     <div class="field">
       <label class="label">Repetir contraseña</label>
@@ -1575,6 +1582,34 @@ function togglePass(inputId, icon){
 }
 
 // ── Registro paso 1 ─────────────────────────────────────────────────────
+// ── Fuerza de contraseña (solo informativo; el mínimo de 8 sigue siendo obligatorio) ──
+function passwordStrength(pw){
+  if(!pw) return {label:'', pct:0, color:'var(--border)'};
+  let score = 0;
+  if(pw.length >= 8) score++;
+  if(pw.length >= 12) score++;
+  if(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^a-zA-Z0-9]/.test(pw)) score++;
+  if(score <= 1) return {label:'Débil — probá algo más largo o variado', pct:25, color:'var(--red)'};
+  if(score <= 3) return {label:'Media — sirve, pero puede mejorar', pct:60, color:'var(--accent-soft)'};
+  return {label:'Fuerte 💪', pct:100, color:'var(--green)'};
+}
+function updatePasswordStrength(){
+  const pw = document.getElementById('r-pass')?.value || '';
+  const meter = document.getElementById('r-pass-meter');
+  const bar = document.getElementById('r-pass-bar');
+  const label = document.getElementById('r-pass-label');
+  if(!meter || !bar || !label) return;
+  if(!pw){ meter.style.display='none'; return; }
+  meter.style.display='block';
+  const s = passwordStrength(pw);
+  bar.style.width = s.pct+'%';
+  bar.style.background = s.color;
+  label.textContent = s.label;
+  label.style.color = s.color;
+}
+
 async function registerStep1(){
   const name  = document.getElementById('r-name').value.trim();
   const email = document.getElementById('r-email').value.trim();
@@ -1588,7 +1623,20 @@ async function registerStep1(){
   if(pass.length < 8){ toast('La contraseña necesita al menos 8 caracteres'); return; }
   if(pass !== pass2){ err.textContent='Las contraseñas no coinciden.'; err.classList.add('show'); return; }
 
-  const btn = event?.target;
+  const strength = passwordStrength(pass);
+  const submitBtn = event?.target;
+  if(strength.pct <= 25){
+    askConfirm(
+      '⚠️ Esta contraseña es débil. Como protege todos tus datos cifrados, te conviene una más larga o variada. ¿Querés seguir igual?',
+      ()=>registerStep1Continue(name, email, pass, submitBtn),
+      'Seguir igual'
+    );
+    return;
+  }
+  registerStep1Continue(name, email, pass, submitBtn);
+}
+
+async function registerStep1Continue(name, email, pass, btn){
   if(btn){ btn.disabled = true; btn.textContent = 'Creando cuenta…'; }
 
   try{
@@ -1869,7 +1917,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 35;
+const APP_VERSION = 36;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -4935,6 +4983,9 @@ function renderEvolution(){
   const maxFlow = Math.max(1, ...months.map(m=>Math.max(m.gasto, m.ingreso)));
   const maxPatr = Math.max(1, ...months.map(m=>Math.abs(m.patrimonio)));
 
+  const years = getArchiveYears();
+  const yearOptions = years.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join('');
+
   const barsHtml = months.map(m=>{
     const gH = Math.max(2, Math.round((m.gasto/maxFlow)*110));
     const iH = Math.max(2, Math.round((m.ingreso/maxFlow)*110));
@@ -5003,9 +5054,161 @@ function renderEvolution(){
 
     <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:9px;">Variación por categoría (último mes cerrado)</p>
     <div class="lwrap">${catHtml}</div>
+
+    <div style="margin-top:22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);">Cierre anual</p>
+        ${years.length>1 ? `<select id="ev-year-select" class="input select" style="width:auto;height:32px;font-size:12px;padding:0 26px 0 10px;" onchange="renderYearlyClose(this.value)">${yearOptions}</select>` : ''}
+      </div>
+      <div id="ev-yearly-body"></div>
+    </div>
   `;
 
   if(!valuesVisible) applyVisibilityWallet();
+  if(years.length) renderYearlyClose(years[0]);
+}
+
+// ── Cierre anual (agregado de los cierres mensuales de un año) ──────────
+function getArchiveYears(){
+  const years = new Set(getArchive().map(e => (e.monthKey||'').split('-')[0]).filter(Boolean));
+  return [...years].sort((a,b)=> b.localeCompare(a));
+}
+
+function getYearlyClose(year){
+  const arch = getArchive().filter(e => (e.monthKey||'').startsWith(year+'-'));
+  if(!arch.length) return null;
+  const chron = [...arch].sort((a,b)=> (a.monthKey||'').localeCompare(b.monthKey||''));
+  const totalOut = arch.reduce((s,e)=>s+(e.totalOut||0),0);
+  const totalIn  = arch.reduce((s,e)=>s+(e.totalIn||0),0);
+  const byMonthOut = [...arch].sort((a,b)=>(b.totalOut||0)-(a.totalOut||0));
+  const maxMonth = byMonthOut[0];
+  const minMonth = byMonthOut[byMonthOut.length-1];
+  const byCatYear = {};
+  arch.forEach(e=>{ Object.entries(e.byCat||{}).forEach(([cat,amt])=>{ byCatYear[cat]=(byCatYear[cat]||0)+(Number(amt)||0); }); });
+  const catSorted = Object.entries(byCatYear).sort((a,b)=>b[1]-a[1]);
+  const topCat = catSorted[0] || null;
+  const patrimonioInicio = (chron[0].snapshot && chron[0].snapshot.totals) ? (chron[0].snapshot.totals.grand||0) : 0;
+  const patrimonioFin = (chron[chron.length-1].snapshot && chron[chron.length-1].snapshot.totals) ? (chron[chron.length-1].snapshot.totals.grand||0) : 0;
+  return { year, monthsClosed: arch.length, totalOut, totalIn, maxMonth, minMonth, byCatYear, topCat, patrimonioInicio, patrimonioFin, chron };
+}
+
+function renderYearlyClose(year){
+  const el = document.getElementById('ev-yearly-body');
+  if(!el) return;
+  const y = getYearlyClose(year);
+  if(!y){ el.innerHTML = '<div class="empty-state" style="border:none;">Sin cierres para este año.</div>'; return; }
+  const catInfo = y.topCat ? CATS.find(c=>c.id===y.topCat[0]) : null;
+  const catLabel = catInfo ? catInfo.i+' '+catInfo.l : (y.topCat ? y.topCat[0] : '—');
+  const patrimonioUp = y.patrimonioFin >= y.patrimonioInicio;
+
+  el.innerHTML = `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text-dim);">Total gastado en ${esc(y.year)}</span>
+        <span style="font-size:15px;font-weight:800;" class="w-val">$${fmt(y.totalOut)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text-dim);">Total ingresado en ${esc(y.year)}</span>
+        <span style="font-size:15px;font-weight:800;color:var(--green);" class="w-val">$${fmt(y.totalIn)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text-dim);">Mes de mayor gasto</span>
+        <span style="font-size:13px;font-weight:700;" class="w-val">${esc(capitalize(y.maxMonth.label||''))} · $${fmt(y.maxMonth.totalOut)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text-dim);">Mes de menor gasto</span>
+        <span style="font-size:13px;font-weight:700;" class="w-val">${esc(capitalize(y.minMonth.label||''))} · $${fmt(y.minMonth.totalOut)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:12px;color:var(--text-dim);">Categoría que más pesó</span>
+        <span style="font-size:13px;font-weight:700;" class="w-val">${esc(catLabel)}${y.topCat?' · $'+fmt(y.topCat[1]):''}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);">
+        <span style="font-size:12px;color:var(--text-dim);">Patrimonio: inicio → fin de año</span>
+        <span style="font-size:13px;font-weight:800;color:${patrimonioUp?'var(--green)':'var(--red)'};" class="w-val">$${fmt(y.patrimonioInicio)} → $${fmt(y.patrimonioFin)}</span>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="exportYearlyPDF('${esc(y.year)}')">📄 Exportar cierre anual en PDF</button>
+  `;
+  if(!valuesVisible) applyVisibilityWallet();
+}
+
+function exportYearlyPDF(year){
+  try{
+    if(!window.jspdf || !window.jspdf.jsPDF){ toast('No se pudo generar el PDF'); return; }
+    const { jsPDF } = window.jspdf;
+    const y = getYearlyClose(year);
+    if(!y){ toast('No hay datos de ese año'); return; }
+
+    const doc = new jsPDF({unit:'pt', format:'a4'});
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginX = 40;
+    let py = pdfHeader(doc, pageW);
+
+    doc.setTextColor(30,30,30);
+    doc.setFont('helvetica','bold'); doc.setFontSize(15);
+    doc.text('Cierre anual '+y.year, marginX, py);
+    py += 20;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.setTextColor(140,140,140);
+    doc.text('Generado el '+fmtDateFull(new Date().toISOString())+' · '+y.monthsClosed+' mes(es) cerrado(s) en el año', marginX, py);
+    py += 26;
+
+    const catLabelPdf = y.topCat ? ((CATS.find(c=>c.id===y.topCat[0])||{}).l || y.topCat[0]) : '—';
+    const rows = [
+      ['Total gastado en el año', '$'+fmt(y.totalOut)],
+      ['Total ingresado en el año', '$'+fmt(y.totalIn)],
+      ['Mes de mayor gasto', capitalize(y.maxMonth.label||'')+'  —  $'+fmt(y.maxMonth.totalOut)],
+      ['Mes de menor gasto', capitalize(y.minMonth.label||'')+'  —  $'+fmt(y.minMonth.totalOut)],
+      ['Categoría que más pesó', catLabelPdf + (y.topCat ? '  —  $'+fmt(y.topCat[1]) : '')],
+      ['Patrimonio a inicio de año', '$'+fmt(y.patrimonioInicio)],
+      ['Patrimonio a fin de año', '$'+fmt(y.patrimonioFin)],
+    ];
+
+    const boxH = rows.length*24 + 16;
+    doc.setDrawColor(225,225,225); doc.setFillColor(248,248,248);
+    doc.roundedRect(marginX, py, pageW-marginX*2, boxH, 6, 6, 'FD');
+    let by = py + 22;
+    rows.forEach(([label,val])=>{
+      doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+      doc.text(label, marginX+16, by);
+      doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+      doc.text(val, pageW-marginX-16, by, {align:'right'});
+      by += 24;
+    });
+    py = py + boxH + 26;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(30,30,30);
+    doc.text('Detalle mes a mes', marginX, py);
+    py += 16;
+    const col = { mes: marginX, gasto: marginX+220, ingreso: pageW-marginX };
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120,120,120);
+    doc.text('Mes', col.mes, py);
+    doc.text('Gastos', col.gasto, py);
+    doc.text('Ingresos', col.ingreso, py, {align:'right'});
+    py += 6;
+    doc.setDrawColor(210,210,210); doc.line(marginX, py, pageW-marginX, py);
+    py += 14;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    y.chron.forEach(m=>{
+      if(py > pageH - 70){
+        doc.addPage();
+        py = pdfHeader(doc, pageW);
+      }
+      doc.setTextColor(60,60,60);
+      doc.text(capitalize(m.label||m.monthKey||''), col.mes, py);
+      doc.text('$'+fmt(m.totalOut), col.gasto, py);
+      doc.text('$'+fmt(m.totalIn), col.ingreso, py, {align:'right'});
+      py += 16;
+    });
+
+    const totalPages = doc.internal.getNumberOfPages();
+    for(let p=1;p<=totalPages;p++){ doc.setPage(p); pdfFooter(doc, pageW, pageH, p, totalPages); }
+
+    doc.save('nmclb-cierre-anual-'+year+'.pdf');
+    toast('📄 PDF del cierre anual generado');
+  }catch(e){ console.error('exportYearlyPDF', e); toast('No se pudo generar el PDF'); }
 }
 
 function toggleMonthCard(i){
