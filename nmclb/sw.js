@@ -1,5 +1,5 @@
 // NMCLB Service Worker — Altouch
-const CACHE = 'nmclb-v26';
+const CACHE = 'nmclb-v30';
 const ASSETS = [
   './',
   './index.html',
