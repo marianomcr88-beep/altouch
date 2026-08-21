@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="32">
+<meta name="app-version" content="33">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -1865,7 +1865,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 32;
+const APP_VERSION = 33;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2465,7 +2465,12 @@ function cryptoTotalUSD(){
 
 // ── Billetera ─────────────────────────────────────────────────────────────
 function getTotalIncludes(){
-  return JSON.parse(localStorage.getItem('nmclb_total_includes')||'{"cash":true,"digital":true,"invest":true,"fx":true,"crypto":true}');
+  const defaults = {cash:true, digital:true, invest:true, fx:true, crypto:true};
+  let raw = {};
+  try{ raw = JSON.parse(localStorage.getItem('nmclb_total_includes')||'{}') || {}; }catch(e){}
+  // Si falta algún bolsillo en el dato guardado (parcial/corrupto), se lo
+  // trata como incluido por defecto — nunca excluido en silencio.
+  return {...defaults, ...raw};
 }
 
 function toggleTotalInclude(key){
