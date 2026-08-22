@@ -1,0 +1,17 @@
+{
+  "name": "¿Cuál conviene? · altouch",
+  "short_name": "Cuál conviene",
+  "description": "Comparador de precios por unidad — descubrí qué conviene comprar en segundos.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0C1A24",
+  "theme_color": "#0C1A24",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

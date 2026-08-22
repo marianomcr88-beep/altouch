@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0C1A24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cuál conviene">
+<meta name="app-version" content="1">
+<title>¿Cuál conviene? · altouch</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#0C1A24; --bg-1:#1A2B3C; --bg-2:#22384B;
+  --panel:rgba(255,255,255,0.06); --panel-strong:rgba(255,255,255,0.10);
+  --border:rgba(255,255,255,0.12); --border-strong:rgba(255,255,255,0.22);
+  --text:#FFFFFF; --text-dim:rgba(255,255,255,0.62); --text-faint:rgba(255,255,255,0.40);
+  --accent:#FF6B35; --accent-2:#FF3D57; --accent-soft:#FFB265; --green:#7FC97A;
+  --red:#FF5A6E; --radius:14px;
+  --grad-accent:linear-gradient(135deg,#FFB265 0%,#FF6B35 55%,#FF3D57 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:'M PLUS Rounded 1c',system-ui,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;position:fixed;width:100%;}
+#app{max-width:440px;margin:0 auto;height:100vh;height:100dvh;background:linear-gradient(180deg,#1A2B3C 0%,#0C1A24 60%);display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:24px 20px calc(20px + env(safe-area-inset-bottom));opacity:0;pointer-events:none;transform:translateX(24px);transition:opacity .28s ease,transform .28s ease;overflow-y:auto;}
+.screen.active{opacity:1;pointer-events:auto;transform:translateX(0);}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;min-height:36px;}
+.topbar h2{flex:1;}
+.back{background:var(--panel);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:10px;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.chip{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;white-space:nowrap;}
+.chip .n{color:var(--green);}
+.brandmark{display:flex;align-items:center;gap:8px;}
+.brandmark .dot{width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:var(--bg-0);font-weight:800;font-size:15px;}
+.brandmark .txt{font-size:13px;color:var(--text-dim);font-weight:500;letter-spacing:.02em;}
+h1{font-size:26px;font-weight:800;line-height:1.15;letter-spacing:-.01em;}
+h2{font-size:20px;font-weight:700;}
+.sub{color:var(--text-dim);font-size:15px;line-height:1.5;font-weight:400;}
+
+.hero-logo{width:88px;height:88px;border-radius:50%;background:var(--grad-accent);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 12px 40px rgba(255,61,87,0.35);}
+.hero-logo svg{width:44px;height:44px;}
+.choice{display:flex;flex-direction:column;gap:14px;}
+.choice-card{display:flex;align-items:center;gap:16px;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;cursor:pointer;transition:transform .12s ease,border .2s ease;text-align:left;color:var(--text);font-family:inherit;}
+.choice-card:active{transform:scale(.98);}
+.choice-card .ic{width:52px;height:52px;border-radius:14px;background:var(--grad-accent);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.choice-card .ic.alt{background:var(--panel-strong);}
+.choice-card h3{font-size:17px;font-weight:800;margin-bottom:3px;}
+.choice-card p{font-size:13px;color:var(--text-dim);font-weight:400;line-height:1.4;}
+.choice-card .arr{margin-left:auto;color:var(--text-faint);font-size:22px;}
+.hist-link{display:flex;align-items:center;justify-content:center;gap:8px;background:none;border:none;color:var(--text-dim);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;padding:14px;width:100%;}
+
+.btn{width:100%;height:56px;border-radius:var(--radius);border:none;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease,filter .2s ease;}
+.btn:active{transform:scale(.975);}
+.btn-accent{background:var(--grad-accent);color:#fff;box-shadow:0 8px 24px rgba(255,61,87,.28);}
+.btn-ghost{background:var(--panel);color:var(--text);border:1px solid var(--border-strong);}
+.btn-green{background:var(--green);color:#0C1A24;}
+.btn:disabled{background:var(--panel);color:var(--text-faint);box-shadow:none;cursor:default;}
+.btn-sm{height:48px;font-size:15px;}
+
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:7px;font-weight:500;}
+.input,.select{width:100%;height:50px;border-radius:12px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:16px;font-weight:500;padding:0 14px;outline:none;transition:border .2s ease;}
+.input:focus,.select:focus{border-color:var(--accent);}
+.input::placeholder{color:var(--text-faint);font-weight:400;}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-opacity='.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:40px;}
+.row{display:flex;gap:10px;}
+.row .field{flex:1;}
+.hint{font-size:12px;color:var(--accent-soft);margin-top:-8px;margin-bottom:16px;font-weight:500;}
+
+.tip{font-size:12px;color:var(--text-dim);background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:18px;line-height:1.45;display:flex;gap:8px;align-items:flex-start;}
+.tip .i{color:var(--accent-soft);flex-shrink:0;font-size:14px;}
+.toggle-link{background:none;border:none;color:var(--accent-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0;margin:-4px 0 16px;display:flex;align-items:center;gap:6px;}
+
+.seg{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.seg button{flex:1;min-width:calc(25% - 8px);height:40px;border-radius:10px;background:var(--panel);border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s ease;}
+.seg button.on{background:var(--grad-accent);color:#fff;border-color:transparent;font-weight:700;}
+
+.plist{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px;}
+.pcard{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.pcard .avatar{width:44px;height:44px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;}
+.pcard .meta{flex:1;min-width:0;}
+.pcard .meta .nm{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pcard .meta .dt{font-size:13px;color:var(--text-dim);font-weight:400;}
+.pcard .amt{font-weight:800;font-size:15px;white-space:nowrap;}
+.pcard .del{background:none;border:none;color:var(--text-faint);font-size:22px;cursor:pointer;padding:4px;line-height:1;}
+.empty{text-align:center;padding:32px 16px;color:var(--text-faint);font-size:14px;border:1px dashed var(--border);border-radius:12px;margin:4px 0 16px;}
+
+.stepper{display:flex;align-items:center;gap:2px;background:var(--panel-strong);border-radius:10px;padding:3px;flex-shrink:0;}
+.stepper button{width:28px;height:28px;border:none;background:transparent;color:var(--text);font-size:18px;font-weight:700;cursor:pointer;border-radius:7px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.stepper button:active{background:var(--panel);}
+.stepper .q{min-width:22px;text-align:center;font-size:14px;font-weight:800;}
+.badge-offer{display:inline-block;background:rgba(127,201,122,.16);color:var(--green);font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;margin-left:6px;vertical-align:middle;}
+
+.total-banner{background:var(--grad-accent);border-radius:18px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 28px rgba(255,61,87,.28);}
+.total-banner .lbl{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.9;}
+.total-banner .val{font-size:30px;font-weight:800;line-height:1.1;margin-top:2px;}
+.total-banner .cnt{text-align:right;font-size:13px;font-weight:700;opacity:.92;}
+.total-banner .cnt b{display:block;font-size:26px;}
+
+.winner{background:var(--grad-accent);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 12px 32px rgba(255,61,87,.30);position:relative;overflow:hidden;}
+.winner .tag{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.9;}
+.winner .nm{font-size:24px;font-weight:800;margin:4px 0 2px;}
+.winner .unit{font-size:15px;font-weight:500;opacity:.92;}
+.winner .save{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.22);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:700;}
+.rank{display:flex;flex-direction:column;gap:10px;}
+.rrow{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.rrow .pos{font-size:15px;font-weight:800;color:var(--text-faint);width:24px;text-align:center;}
+.rrow .bar-wrap{flex:1;min-width:0;}
+.rrow .bar-top{display:flex;justify-content:space-between;margin-bottom:6px;gap:8px;}
+.rrow .bar-top .nm{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rrow .bar-top .pu{font-size:14px;font-weight:800;white-space:nowrap;}
+.rrow .track{height:8px;border-radius:6px;background:rgba(255,255,255,.10);overflow:hidden;}
+.rrow .fill{height:100%;border-radius:6px;background:var(--grad-accent);transition:width .6s cubic-bezier(.4,0,.2,1);}
+.rrow.best .track{background:rgba(127,201,122,.18);}
+.rrow.best .fill{background:var(--green);}
+.rrow.best .pos{color:var(--green);}
+.note{font-size:13px;color:var(--text-faint);text-align:center;margin-top:14px;line-height:1.5;}
+
+.hcard{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.hcard .hhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.hcard .hdate{font-size:14px;font-weight:700;}
+.hcard .htot{font-size:20px;font-weight:800;color:var(--accent-soft);}
+.hcard .hmeta{font-size:13px;color:var(--text-dim);}
+.section-title{font-size:14px;font-weight:700;color:var(--text-dim);margin:20px 0 12px;text-transform:uppercase;letter-spacing:.05em;}
+.chart{display:flex;align-items:flex-end;gap:10px;height:120px;padding:10px 4px 0;background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;}
+.chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;}
+.chart .cbar{width:100%;max-width:38px;border-radius:6px 6px 0 0;background:var(--grad-accent);transition:height .5s ease;}
+.chart .clbl{font-size:11px;color:var(--text-faint);text-align:center;line-height:1.2;}
+.chart .cval{font-size:11px;font-weight:700;color:var(--text-dim);}
+.trend{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+.trend .tn{font-size:14px;font-weight:700;}
+.trend .tp{font-size:13px;color:var(--text-dim);}
+.trend .delta{font-size:14px;font-weight:800;padding:4px 10px;border-radius:16px;}
+.delta.up{background:rgba(255,90,110,.16);color:var(--red);}
+.delta.down{background:rgba(127,201,122,.16);color:var(--green);}
+.delta.flat{background:var(--panel-strong);color:var(--text-dim);}
+
+#toast{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-2);border:1px solid var(--border-strong);color:var(--text);padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:all .3s ease;z-index:50;white-space:nowrap;max-width:90%;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.stack{display:flex;flex-direction:column;gap:12px;}
+.mt-auto{margin-top:auto;padding-top:16px;}
+
+.appfoot{display:flex;align-items:center;justify-content:center;gap:7px;padding-top:20px;margin-top:16px;opacity:.65;}
+.appfoot svg{width:15px;height:15px;flex-shrink:0;}
+.appfoot span{font-size:9px;color:var(--text-faint);font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section class="screen active" id="s-home">
+    <div style="text-align:center;margin:auto 0 24px;">
+      <div class="hero-logo">
+        <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M26 11 V41 M13 17 H39 M19.5 41 H32.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M13 17 L7.5 27.5 A5.5 5.5 0 0 0 18.5 27.5 Z" stroke="#fff" stroke-width="2.3" stroke-linejoin="round" fill="none"/>
+          <path d="M39 17 L33.5 27.5 A5.5 5.5 0 0 0 44.5 27.5 Z" stroke="#fff" stroke-width="2.3" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <h1 style="margin-bottom:8px;">¿Cuál conviene?</h1><p class="sub" style="max-width:280px;margin:0 auto;">¿Qué querés hacer hoy?</p>
+    </div>
+    <div class="choice">
+      <button class="choice-card" onclick="go('add')"><div class="ic">⚖️</div><div><h3>Comparar precios</h3><p>Descubrí cuál sale menos por unidad</p></div><div class="arr">›</div></button>
+      <button class="choice-card" onclick="go('cart')"><div class="ic alt">🛒</div><div><h3>Lista de compra</h3><p>Armá tu carrito y controlá el total</p></div><div class="arr">›</div></button>
+    </div>
+    <div style="margin-top:auto;">
+      <button class="hist-link" onclick="go('history')">🗂️ Ver historial de compras</button>
+      <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-home" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-home)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-home)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-home)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+    </div>
+  </section>
+
+  <!-- ADD (comparator) -->
+  <section class="screen" id="s-add">
+    <div class="topbar"><button class="back" onclick="go('home')">‹</button><h2>Comparar</h2><span class="chip">Cargados: <span class="n" id="add-count">0</span></span></div>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="simulatePhoto()">📷 &nbsp;Sacar foto de la etiqueta</button>
+    <div class="tip"><span class="i">📸</span><span>Encuadrá el producto mostrando el <b>gramaje o medida</b> y la <b>etiqueta de precio de la góndola</b> en la misma foto. Si la etiqueta de góndola ya tiene todo, con eso alcanza.</span></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:12px;color:var(--text-faint);">o cargá a mano</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
+
+    <div class="field"><label>¿Qué estás comparando?</label>
+      <div class="seg" id="segType">
+        <button class="on" data-t="peso" onclick="setType('peso')">Peso</button>
+        <button data-t="volumen" onclick="setType('volumen')">Volumen</button>
+        <button data-t="longitud" onclick="setType('longitud')">Largo</button>
+        <button data-t="unidad" onclick="setType('unidad')">Unidades</button>
+      </div>
+    </div>
+    <div class="field"><label>Nombre o marca</label><input class="input" id="i-name" placeholder="Ej: Arroz Gallo Oro"></div>
+    <div class="row">
+      <div class="field"><label>Precio ($)</label><input class="input" id="i-price" type="number" inputmode="decimal" placeholder="135.50"></div>
+      <div class="field"><label>Cantidad</label><input class="input" id="i-qty" type="number" inputmode="decimal" placeholder="1"></div>
+      <div class="field" style="flex:0 0 96px;"><label>Unidad</label><select class="select" id="i-unit" onchange="onUnitChange()"></select></div>
+    </div>
+    <div id="pano-field" style="display:none;">
+      <div class="field"><label>¿Cuánto mide cada paño? (cm)</label><input class="input" id="i-pano" type="number" inputmode="decimal" placeholder="Ej: 22"></div>
+      <p class="hint">↑ Convertimos los paños a metros para poder compararlos contra rollos en metros.</p>
+    </div>
+
+    <button class="toggle-link" id="offer-toggle" onclick="toggleOffer('add')">＋ ¿Hay oferta por cantidad? (3x2, 2do al 50%…)</button>
+    <div id="offer-field" style="display:none;">
+      <div class="row">
+        <div class="field"><label>Llevando (cant.)</label><input class="input" id="i-offer-qty" type="number" inputmode="decimal" placeholder="Ej: 2"></div>
+        <div class="field"><label>Pagás en total ($)</label><input class="input" id="i-offer-total" type="number" inputmode="decimal" placeholder="Ej: 2100"></div>
+      </div>
+      <p class="hint">Calculamos el precio real por unidad con la oferta aplicada.</p>
+    </div>
+
+    <button class="btn btn-green btn-sm" style="margin-top:4px;" onclick="addProduct()">＋ Agregar a la comparación</button>
+    <div class="mt-auto"><button class="btn btn-accent" id="btn-goto-list" onclick="go('list')" disabled>Ver comparación (0)</button></div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-add" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-add)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-add)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-add)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
+  <!-- COMPARE LIST -->
+  <section class="screen" id="s-list">
+    <div class="topbar"><button class="back" onclick="go('add')">‹</button><h2>Tu comparación</h2></div>
+    <p class="sub" id="list-sub" style="margin-bottom:14px;">Cargá al menos 2 productos.</p>
+    <div id="list-container"></div>
+    <div class="mt-auto stack">
+      <button class="btn btn-ghost btn-sm" onclick="go('add')">＋ Agregar otro producto</button>
+      <button class="btn btn-accent" id="btn-do-compare" onclick="compare()" disabled>Comparar precios</button>
+    </div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-list" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-list)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-list)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-list)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="s-results">
+    <div class="topbar"><button class="back" onclick="go('list')">‹</button><h2>Resultado</h2></div>
+    <div id="results-container"></div>
+    <div class="mt-auto stack">
+      <button class="btn btn-green btn-sm" onclick="addWinnerToCart()">🛒 &nbsp;Agregar ganador a mi lista</button>
+      <div class="row">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="saveComparison()">💾 Guardar</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="reset()">↺ De nuevo</button>
+      </div>
+    </div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-res" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-res)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-res)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-res)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
+  <!-- CART -->
+  <section class="screen" id="s-cart">
+    <div class="topbar"><button class="back" onclick="go('home')">‹</button><h2>Lista de compra</h2></div>
+    <div class="total-banner"><div><div class="lbl">Total</div><div class="val" id="cart-total">$0</div></div><div class="cnt"><b id="cart-count">0</b>ítems</div></div>
+    <div id="cart-container"></div>
+
+    <div class="section-title" style="margin-top:8px;">Agregar producto</div>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="simulateCartPhoto()">📷 &nbsp;Sacar foto</button>
+    <div class="tip"><span class="i">📸</span><span>Mostrá el producto y la <b>etiqueta de precio de góndola</b> en la misma toma.</span></div>
+    <div class="row">
+      <div class="field" style="flex:2;"><label>Producto</label><input class="input" id="c-name" placeholder="Ej: Leche"></div>
+      <div class="field" style="flex:1;"><label>Cantidad</label><input class="input" id="c-qty" type="number" inputmode="numeric" placeholder="1"></div>
+    </div>
+    <div class="field"><label>Precio c/u ($)</label><input class="input" id="c-price" type="number" inputmode="decimal" placeholder="990"></div>
+
+    <button class="toggle-link" id="c-offer-toggle" onclick="toggleOffer('cart')">＋ ¿Oferta por cantidad?</button>
+    <div id="c-offer-field" style="display:none;">
+      <div class="row">
+        <div class="field"><label>Llevando (cant.)</label><input class="input" id="c-offer-qty" type="number" inputmode="numeric" placeholder="Ej: 3"></div>
+        <div class="field"><label>Pagás en total ($)</label><input class="input" id="c-offer-total" type="number" inputmode="decimal" placeholder="Ej: 2000"></div>
+      </div>
+      <p class="hint">Usamos el precio de la oferta como total de esa línea.</p>
+    </div>
+
+    <button class="btn btn-green btn-sm" onclick="addCartItem()">＋ Agregar a la lista</button>
+    <div class="mt-auto stack">
+      <button class="btn btn-ghost btn-sm" onclick="go('add')">⚖️ &nbsp;Ir a comparar un producto</button>
+      <button class="btn btn-accent" id="btn-close-purchase" onclick="closePurchase()" disabled>Cerrar compra</button>
+    </div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-cart" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-cart)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-cart)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-cart)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="screen" id="s-history">
+    <div class="topbar"><button class="back" onclick="go('home')">‹</button><h2>Historial</h2></div>
+    <div id="history-container"></div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-hist" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-hist)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-hist)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-hist)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
+  <div id="toast"></div>
+</div>
+
+<script>
+const UNITS={
+  peso:{base:'g',units:{'g':1,'kg':1000}},
+  volumen:{base:'ml',units:{'ml':1,'cc':1,'l':1000}},
+  longitud:{base:'m',units:{'m':1,'cm':0.01,'paño':'dyn'}},
+  unidad:{base:'u',units:{'u':1,'docena':12,'pack':1}}
+};
+const PER_LABEL={peso:'por kg',volumen:'por litro',longitud:'por metro',unidad:'por unidad'};
+const PER_SCALE={peso:1000,volumen:1000,longitud:1,unidad:1};
+const COLORS=['#FF6B35','#FF3D57','#7FC97A','#3C82F6','#B368D9','#F5A623'];
+let state={type:'peso',compareProducts:[],cart:[]};
+let offerOn={add:false,cart:false};
+
+const LS={cart:'cualconviene_cart',hist:'cualconviene_history',saved:'cualconviene_saved'};
+function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  if(id==='list')renderCompareList();
+  if(id==='cart')renderCart();
+  if(id==='history')renderHistory();
+  document.getElementById('s-'+id).scrollTop=0;
+}
+
+function setType(t){
+  if(state.compareProducts.length>0&&t!==state.type){toast('Ya comparás por '+labelOf(state.type)+'. Terminá o reiniciá.');return;}
+  state.type=t;
+  document.querySelectorAll('#segType button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  fillUnits();onUnitChange();
+}
+function labelOf(t){return {peso:'peso',volumen:'volumen',longitud:'largo',unidad:'unidades'}[t];}
+function fillUnits(){const sel=document.getElementById('i-unit');sel.innerHTML='';Object.keys(UNITS[state.type].units).forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});}
+function onUnitChange(){document.getElementById('pano-field').style.display=document.getElementById('i-unit').value==='paño'?'block':'none';}
+
+function toggleOffer(ctx){
+  offerOn[ctx]=!offerOn[ctx];
+  const field=document.getElementById(ctx==='add'?'offer-field':'c-offer-field');
+  const tog=document.getElementById(ctx==='add'?'offer-toggle':'c-offer-toggle');
+  field.style.display=offerOn[ctx]?'block':'none';
+  tog.textContent=(offerOn[ctx]?'− ':'＋ ')+(ctx==='add'?'¿Hay oferta por cantidad? (3x2, 2do al 50%…)':'¿Oferta por cantidad?');
+}
+
+function addProduct(){
+  const name=document.getElementById('i-name').value.trim();
+  const price=parseFloat(document.getElementById('i-price').value);
+  const qty=parseFloat(document.getElementById('i-qty').value);
+  const unit=document.getElementById('i-unit').value;
+  if(!name){toast('Ponele un nombre 🙂');return;}
+  if(!price||price<=0){toast('Falta el precio');return;}
+  if(!qty||qty<=0){toast('Falta la cantidad');return;}
+  if(state.compareProducts.length>=5){toast('Máximo 5 productos');return;}
+
+  let baseQty;
+  if(unit==='paño'){
+    const pano=parseFloat(document.getElementById('i-pano').value);
+    if(!pano||pano<=0){toast('¿Cuánto mide el paño? (cm)');return;}
+    baseQty=qty*(pano/100);
+  }else{baseQty=qty*UNITS[state.type].units[unit];}
+
+  // bulk offer
+  let effTotalPrice=price, effPacks=1, offer=null;
+  if(offerOn.add){
+    const oq=parseFloat(document.getElementById('i-offer-qty').value);
+    const ot=parseFloat(document.getElementById('i-offer-total').value);
+    if(!oq||oq<=0||!ot||ot<=0){toast('Completá la oferta (cantidad y total)');return;}
+    effPacks=oq;effTotalPrice=ot;offer={qty:oq,total:ot};
+  }
+  const totalBase=baseQty*effPacks;
+  const perUnit=(effTotalPrice/totalBase)*PER_SCALE[state.type];
+  const perPack=effTotalPrice/effPacks; // precio real por unidad de producto
+
+  state.compareProducts.push({name,price,perPack,qty,unit,type:state.type,perUnit,offer,color:COLORS[state.compareProducts.length%COLORS.length]});
+  document.getElementById('i-name').value='';document.getElementById('i-price').value='';document.getElementById('i-qty').value='';document.getElementById('i-pano').value='';
+  document.getElementById('i-offer-qty').value='';document.getElementById('i-offer-total').value='';
+  if(offerOn.add)toggleOffer('add');
+  toast('✓ '+name+' agregado');updateAddBtn();
+}
+function updateAddBtn(){const n=state.compareProducts.length;document.getElementById('add-count').textContent=n;const b=document.getElementById('btn-goto-list');b.textContent='Ver comparación ('+n+')';b.disabled=n===0;}
+
+function renderCompareList(){
+  const c=document.getElementById('list-container');
+  if(state.compareProducts.length===0){c.innerHTML='<div class="empty">Todavía no cargaste nada.<br>Volvé y agregá productos.</div>';}
+  else{c.innerHTML='<div class="plist">'+state.compareProducts.map((p,i)=>`
+    <div class="pcard"><div class="avatar" style="background:${p.color};">${p.name.charAt(0).toUpperCase()}</div>
+    <div class="meta"><div class="nm">${esc(p.name)}${p.offer?'<span class="badge-offer">oferta</span>':''}</div><div class="dt">${p.qty} ${p.unit} · $${p.price.toFixed(2)}${p.offer?' · '+p.offer.qty+'x $'+p.offer.total:''}</div></div>
+    <button class="del" onclick="rmCompare(${i})">×</button></div>`).join('')+'</div>';}
+  document.getElementById('list-sub').textContent=state.compareProducts.length<2?'Cargá al menos 2 productos para comparar.':'Comparando '+labelOf(state.type)+' · '+state.compareProducts.length+' productos';
+  document.getElementById('btn-do-compare').disabled=state.compareProducts.length<2;
+}
+function rmCompare(i){state.compareProducts.splice(i,1);updateAddBtn();renderCompareList();}
+
+let lastBest=null;
+function compare(){
+  if(state.compareProducts.length<2){toast('Necesitás 2 o más');return;}
+  const sorted=[...state.compareProducts].sort((a,b)=>a.perUnit-b.perUnit);
+  const best=sorted[0],worst=sorted[sorted.length-1];lastBest=best;
+  const savePct=((worst.perUnit-best.perUnit)/worst.perUnit*100);
+  const maxPer=worst.perUnit;const perLabel=PER_LABEL[best.type];
+  document.getElementById('results-container').innerHTML=`
+    <div class="winner"><div class="save">−${savePct.toFixed(0)}%</div><div class="tag">🏆 Más conveniente</div>
+      <div class="nm">${esc(best.name)}</div><div class="unit">$${fmt(best.perUnit)} ${perLabel}${best.offer?' · con oferta':''}</div></div>
+    <div class="rank">${sorted.map((p,i)=>{const w=Math.max(8,(p.perUnit/maxPer*100));
+      return `<div class="rrow ${i===0?'best':''}"><div class="pos">${i===0?'★':'#'+(i+1)}</div>
+      <div class="bar-wrap"><div class="bar-top"><span class="nm">${esc(p.name)}${p.offer?'<span class="badge-offer">of.</span>':''}</span><span class="pu">$${fmt(p.perUnit)}</span></div>
+      <div class="track"><div class="fill" style="width:0%" data-w="${w}"></div></div></div></div>`;}).join('')}</div>
+    <div class="note">Precios normalizados ${perLabel}.<br>Comparando ${state.compareProducts.length} productos por ${labelOf(best.type)}.</div>`;
+  go('results');
+  requestAnimationFrame(()=>setTimeout(()=>{document.querySelectorAll('#results-container .fill').forEach(f=>{f.style.width=f.dataset.w+'%';});},80));
+}
+function saveComparison(){if(!lastBest)return;const saved=lsGet(LS.saved,[]);saved.unshift({date:Date.now(),type:state.type,best:lastBest.name,perUnit:lastBest.perUnit,count:state.compareProducts.length});lsSet(LS.saved,saved);toast('💾 Comparativa guardada');}
+function addWinnerToCart(){if(!lastBest)return;state.cart.push({name:lastBest.name,qty:1,unitPrice:lastBest.perPack,offer:lastBest.offer?{qty:lastBest.offer.qty,total:lastBest.offer.total}:null,fromCompare:true});saveCart();toast('🛒 '+lastBest.name+' → a tu lista');}
+
+function renderCart(){
+  const c=document.getElementById('cart-container');
+  if(state.cart.length===0){c.innerHTML='<div class="empty">Tu lista está vacía.<br>Agregá productos a mano, por foto o desde el comparador.</div>';}
+  else{c.innerHTML='<div class="plist">'+state.cart.map((it,i)=>{
+    const line=lineTotal(it);
+    const av=it.fromCompare?'★':it.name.charAt(0).toUpperCase();
+    const avbg=it.fromCompare?'var(--green)':COLORS[i%COLORS.length];
+    const avcol=it.fromCompare?'#0C1A24':'#fff';
+    const sub=it.offer?('oferta '+it.offer.qty+'x $'+it.offer.total):('$'+Number(it.unitPrice).toFixed(2)+' c/u');
+    const ctrl=it.offer?`<div class="amt">$${line.toFixed(0)}</div>`:`<div class="stepper"><button onclick="cartQty(${i},-1)">−</button><span class="q">${it.qty}</span><button onclick="cartQty(${i},1)">＋</button></div><div class="amt">$${line.toFixed(0)}</div>`;
+    return `<div class="pcard"><div class="avatar" style="background:${avbg};color:${avcol};">${av}</div>
+      <div class="meta"><div class="nm">${esc(it.name)}${it.offer?'<span class="badge-offer">of.</span>':''}</div><div class="dt">${sub}</div></div>
+      ${ctrl}<button class="del" onclick="rmCartItem(${i})">×</button></div>`;}).join('')+'</div>';}
+  const total=state.cart.reduce((s,it)=>s+lineTotal(it),0);
+  const count=state.cart.reduce((s,it)=>s+(it.offer?it.offer.qty:it.qty),0);
+  document.getElementById('cart-total').textContent='$'+total.toLocaleString('es-AR',{maximumFractionDigits:0});
+  document.getElementById('cart-count').textContent=count;
+  document.getElementById('btn-close-purchase').disabled=state.cart.length===0;
+}
+function lineTotal(it){return it.offer?Number(it.offer.total):it.qty*Number(it.unitPrice);}
+function cartQty(i,d){const it=state.cart[i];it.qty=Math.max(1,it.qty+d);saveCart();renderCart();}
+function addCartItem(){
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){toast('Ponele un nombre');return;}
+  let offer=null,qty=parseInt(document.getElementById('c-qty').value)||1,unitPrice=parseFloat(document.getElementById('c-price').value);
+  if(offerOn.cart){
+    const oq=parseInt(document.getElementById('c-offer-qty').value);const ot=parseFloat(document.getElementById('c-offer-total').value);
+    if(!oq||oq<=0||!ot||ot<=0){toast('Completá la oferta');return;}
+    offer={qty:oq,total:ot};unitPrice=ot/oq;qty=oq;
+  }else{
+    if(!unitPrice||unitPrice<=0){toast('Falta el precio');return;}
+  }
+  state.cart.push({name,qty,unitPrice,offer,fromCompare:false});
+  document.getElementById('c-name').value='';document.getElementById('c-qty').value='';document.getElementById('c-price').value='';
+  document.getElementById('c-offer-qty').value='';document.getElementById('c-offer-total').value='';
+  if(offerOn.cart)toggleOffer('cart');
+  saveCart();renderCart();toast('✓ Agregado');
+}
+function rmCartItem(i){state.cart.splice(i,1);saveCart();renderCart();}
+function saveCart(){lsSet(LS.cart,state.cart);}
+function closePurchase(){
+  if(state.cart.length===0)return;
+  const total=state.cart.reduce((s,it)=>s+lineTotal(it),0);
+  const count=state.cart.reduce((s,it)=>s+(it.offer?it.offer.qty:it.qty),0);
+  const hist=lsGet(LS.hist,[]);
+  hist.unshift({date:Date.now(),total,count,items:state.cart.map(it=>({name:it.name,price:lineTotal(it),qty:it.offer?it.offer.qty:it.qty,unitPrice:Number(it.unitPrice)}))});
+  lsSet(LS.hist,hist);state.cart=[];saveCart();toast('✓ Compra cerrada y archivada');go('history');
+}
+
+function renderHistory(){
+  const c=document.getElementById('history-container');const hist=lsGet(LS.hist,[]);
+  if(hist.length===0){c.innerHTML='<div class="empty">Todavía no cerraste ninguna compra.<br>Cuando cierres una, la vas a ver acá con su fecha y total.</div>';return;}
+  let html='';
+  if(hist.length>=2){
+    const chrono=[...hist].reverse();const max=Math.max(...chrono.map(h=>h.total));
+    html+='<div class="section-title">Evolución del gasto</div><div class="chart">'+chrono.map(h=>{const pct=Math.max(6,h.total/max*100);return `<div class="col"><div class="cval">$${compact(h.total)}</div><div class="cbar" style="height:${pct}%"></div><div class="clbl">${shortDate(h.date)}</div></div>`;}).join('')+'</div>';
+    const first=chrono[0].total,last=chrono[chrono.length-1].total;const pc=((last-first)/first*100);
+    html+=`<div class="trend"><div><div class="tn">Variación total</div><div class="tp">primera vs. última compra</div></div>${deltaBadge(pc)}</div>`;
+  }
+  const map={};
+  [...hist].reverse().forEach(h=>{h.items.forEach(it=>{const k=it.name.trim().toLowerCase();const up=it.unitPrice||it.price;(map[k]=map[k]||{name:it.name,prices:[]}).prices.push(up);});});
+  const repeated=Object.values(map).filter(m=>m.prices.length>=2);
+  if(repeated.length){
+    html+='<div class="section-title">Cómo cambiaron tus productos</div>';
+    repeated.forEach(m=>{const f=m.prices[0],l=m.prices[m.prices.length-1];const pc=((l-f)/f*100);html+=`<div class="trend"><div><div class="tn">${esc(m.name)}</div><div class="tp">$${f.toFixed(0)} → $${l.toFixed(0)} c/u</div></div>${deltaBadge(pc)}</div>`;});
+  }
+  html+='<div class="section-title">Compras cerradas</div>';
+  html+=hist.map(h=>`<div class="hcard"><div class="hhead"><span class="hdate">${fullDate(h.date)}</span><span class="htot">$${h.total.toLocaleString('es-AR',{maximumFractionDigits:0})}</span></div><div class="hmeta">${h.count} ítems · ${h.items.slice(0,3).map(i=>esc(i.name)).join(', ')}${h.items.length>3?'…':''}</div></div>`).join('');
+  c.innerHTML=html;
+}
+function deltaBadge(pc){if(Math.abs(pc)<0.5)return '<div class="delta flat">=</div>';const cls=pc>0?'up':'down';const a=pc>0?'▲':'▼';return `<div class="delta ${cls}">${a} ${Math.abs(pc).toFixed(0)}%</div>`;}
+
+const SAMPLES=[{name:'Arroz Gallo Oro',price:1350,qty:1,unit:'kg',type:'peso'},{name:'Arroz Apolo',price:890,qty:500,unit:'g',type:'peso'},{name:'Rollo Cocina Sussex',price:2100,qty:80,unit:'paño',type:'longitud',pano:22}];
+let sIdx=0;
+function simulatePhoto(){toast('📷 Leyendo etiqueta…');setTimeout(()=>{const s=SAMPLES[sIdx%SAMPLES.length];sIdx++;setType(s.type);document.getElementById('i-name').value=s.name;document.getElementById('i-price').value=s.price;document.getElementById('i-qty').value=s.qty;fillUnits();document.getElementById('i-unit').value=s.unit;onUnitChange();if(s.pano)document.getElementById('i-pano').value=s.pano;toast('✓ Datos detectados — revisalos');},900);}
+const CART_SAMPLES=[{name:'Leche La Serenísima',qty:2,price:990},{name:'Yerba Playadito',qty:1,price:2350},{name:'Fideos Matarazzo',qty:3,price:820}];
+let cIdx=0;
+function simulateCartPhoto(){toast('📷 Leyendo etiqueta…');setTimeout(()=>{const s=CART_SAMPLES[cIdx%CART_SAMPLES.length];cIdx++;document.getElementById('c-name').value=s.name;document.getElementById('c-qty').value=s.qty;document.getElementById('c-price').value=s.price;toast('✓ Datos detectados — revisalos');},900);}
+
+function reset(){state.compareProducts=[];state.type='peso';fillUnits();setType('peso');updateAddBtn();lastBest=null;go('home');}
+function fmt(n){return n>=100?n.toFixed(0):n.toFixed(n>=10?1:2);}
+function compact(n){return n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':n.toFixed(0);}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function shortDate(ts){const d=new Date(ts);return d.getDate()+'/'+(d.getMonth()+1);}
+function fullDate(ts){const d=new Date(ts);return d.toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});}
+let toastTimer;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1900);}
+
+state.cart=lsGet(LS.cart,[]);fillUnits();onUnitChange();updateAddBtn();
+
+// ── Registro del Service Worker ──────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+
+<div id="altouch-ad-slot" aria-hidden="false"></div>
+
+<style>
+  #altouch-ad-slot{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    max-width:440px;
+    margin:0 auto;
+    z-index:40;
+    display:none;
+  }
+  #altouch-ad-slot.is-visible{ display:block; }
+  .altouch-ad{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    padding:9px 18px calc(9px + env(safe-area-inset-bottom));
+    background:var(--bg-2, #22384B);
+    border-top:1px solid var(--border, rgba(255,255,255,.12));
+    text-decoration:none;
+  }
+  .altouch-ad-eyebrow{
+    font-weight:600;
+    font-size:10px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--text-faint, rgba(255,255,255,.40));
+  }
+  .altouch-ad-text{
+    font-family:var(--font, 'M PLUS Rounded 1c', system-ui, sans-serif);
+    font-size:13px;
+    color:var(--text-dim, rgba(255,255,255,.62));
+  }
+</style>
+
+<script>
+(function () {
+  var APP_SLUG = 'cualconviene'; // <-- coincide con la clave en ads-config.json
+
+  fetch('/ads-config.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (cfg) {
+      if (!cfg) return;
+      var conf = cfg[APP_SLUG];
+      if (!conf || !conf.enabled) return;
+
+      var slot = document.getElementById('altouch-ad-slot');
+      slot.innerHTML =
+        '<a class="altouch-ad" href="' + conf.url + '" target="_blank" rel="noopener">' +
+          '<span class="altouch-ad-eyebrow">' + (conf.label || 'TAMBIÉN EN ALTOUCH') + '</span>' +
+          '<span class="altouch-ad-text">' + conf.text + '</span>' +
+        '</a>';
+      slot.classList.add('is-visible');
+    })
+    .catch(function () {
+      // sin conexión, o CSP lo bloquea: la app sigue como si esto no existiera
+    });
+})();
+</script>
+</body>
+</html>
