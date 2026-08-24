@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cuál conviene">
-<meta name="app-version" content="1">
+<meta name="app-version" content="2">
 <title>¿Cuál conviene? · altouch</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
@@ -55,17 +55,17 @@ h2{font-size:20px;font-weight:700;}
 .choice-card .arr{margin-left:auto;color:var(--text-faint);font-size:22px;}
 .hist-link{display:flex;align-items:center;justify-content:center;gap:8px;background:none;border:none;color:var(--text-dim);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;padding:14px;width:100%;}
 
-.btn{width:100%;height:56px;border-radius:var(--radius);border:none;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease,filter .2s ease;}
+.btn{width:100%;height:56px;min-height:56px;flex-shrink:0;border-radius:var(--radius);border:none;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease,filter .2s ease;}
 .btn:active{transform:scale(.975);}
 .btn-accent{background:var(--grad-accent);color:#fff;box-shadow:0 8px 24px rgba(255,61,87,.28);}
 .btn-ghost{background:var(--panel);color:var(--text);border:1px solid var(--border-strong);}
 .btn-green{background:var(--green);color:#0C1A24;}
 .btn:disabled{background:var(--panel);color:var(--text-faint);box-shadow:none;cursor:default;}
-.btn-sm{height:48px;font-size:15px;}
+.btn-sm{height:48px;min-height:48px;font-size:15px;}
 
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:7px;font-weight:500;}
-.input,.select{width:100%;height:50px;border-radius:12px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:16px;font-weight:500;padding:0 14px;outline:none;transition:border .2s ease;}
+.input,.select{width:100%;height:50px;min-height:50px;flex-shrink:0;border-radius:12px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:16px;font-weight:500;padding:0 14px;outline:none;transition:border .2s ease;}
 .input:focus,.select:focus{border-color:var(--accent);}
 .input::placeholder{color:var(--text-faint);font-weight:400;}
 .select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-opacity='.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:40px;}
@@ -78,7 +78,7 @@ h2{font-size:20px;font-weight:700;}
 .toggle-link{background:none;border:none;color:var(--accent-soft);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0;margin:-4px 0 16px;display:flex;align-items:center;gap:6px;}
 
 .seg{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
-.seg button{flex:1;min-width:calc(25% - 8px);height:40px;border-radius:10px;background:var(--panel);border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s ease;}
+.seg button{flex:1;min-width:calc(25% - 8px);height:40px;min-height:40px;flex-shrink:0;border-radius:10px;background:var(--panel);border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .18s ease;}
 .seg button.on{background:var(--grad-accent);color:#fff;border-color:transparent;font-weight:700;}
 
 .plist{display:flex;flex-direction:column;gap:10px;margin:4px 0 16px;}
@@ -91,13 +91,13 @@ h2{font-size:20px;font-weight:700;}
 .pcard .del{background:none;border:none;color:var(--text-faint);font-size:22px;cursor:pointer;padding:4px;line-height:1;}
 .empty{text-align:center;padding:32px 16px;color:var(--text-faint);font-size:14px;border:1px dashed var(--border);border-radius:12px;margin:4px 0 16px;}
 
-.stepper{display:flex;align-items:center;gap:2px;background:var(--panel-strong);border-radius:10px;padding:3px;flex-shrink:0;}
+.stepper{display:flex;align-items:center;gap:2px;flex-shrink:0;background:var(--panel-strong);border-radius:10px;padding:3px;flex-shrink:0;}
 .stepper button{width:28px;height:28px;border:none;background:transparent;color:var(--text);font-size:18px;font-weight:700;cursor:pointer;border-radius:7px;display:flex;align-items:center;justify-content:center;line-height:1;}
 .stepper button:active{background:var(--panel);}
 .stepper .q{min-width:22px;text-align:center;font-size:14px;font-weight:800;}
 .badge-offer{display:inline-block;background:rgba(127,201,122,.16);color:var(--green);font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;margin-left:6px;vertical-align:middle;}
 
-.total-banner{background:var(--grad-accent);border-radius:18px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 28px rgba(255,61,87,.28);}
+.total-banner{background:var(--grad-accent);border-radius:18px;padding:18px 20px;margin-bottom:16px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 28px rgba(255,61,87,.28);}
 .total-banner .lbl{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.9;}
 .total-banner .val{font-size:30px;font-weight:800;line-height:1.1;margin-top:2px;}
 .total-banner .cnt{text-align:right;font-size:13px;font-weight:700;opacity:.92;}
@@ -146,6 +146,46 @@ h2{font-size:20px;font-weight:700;}
 .stack{display:flex;flex-direction:column;gap:12px;}
 .mt-auto{margin-top:auto;padding-top:16px;}
 
+.seg-sm{gap:6px;margin-bottom:14px;}
+.seg-sm button{height:34px;min-height:34px;font-size:12px;min-width:calc(25% - 6px);}
+.omode{display:none;}
+.omode.on{display:block;}
+.qpick{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:12px;}
+.qpick .lb{font-size:13px;font-weight:700;}
+.qpick .lb small{display:block;font-size:11px;color:var(--text-faint);font-weight:500;}
+.sheet-bg{position:absolute;inset:0;background:rgba(6,14,20,.72);backdrop-filter:blur(3px);z-index:70;opacity:0;pointer-events:none;transition:opacity .22s ease;}
+.sheet-bg.on{opacity:1;pointer-events:auto;}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:71;background:var(--bg-1);border-radius:22px 22px 0 0;border-top:1px solid var(--border-strong);padding:20px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .28s cubic-bezier(.4,0,.2,1);max-height:92%;overflow-y:auto;}
+.sheet.on{transform:translateY(0);}
+.sheet .grab{width:38px;height:4px;border-radius:3px;background:var(--border-strong);margin:0 auto 16px;}
+.sheet h3{font-size:19px;font-weight:800;margin-bottom:4px;}
+.sheet .shsub{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.45;}
+.sheet .shsub b{color:var(--accent-soft);}
+.rrow.pick{cursor:pointer;transition:border .18s ease,transform .12s ease;}
+.rrow.pick:active{transform:scale(.985);}
+.rrow .go{color:var(--text-faint);font-size:20px;flex-shrink:0;}
+
+.big-in{height:58px;min-height:58px;font-size:22px;font-weight:700;}
+.units{display:flex;gap:8px;margin:-6px 0 16px;flex-wrap:wrap;}
+.units button{flex:1;min-width:64px;height:42px;min-height:42px;flex-shrink:0;border-radius:11px;background:var(--panel);border:1px solid var(--border);color:var(--text-dim);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s ease;}
+.units button.on{background:var(--grad-accent);color:#fff;border-color:transparent;}
+.mrow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:8px;}
+.mrow.best{border-color:rgba(127,201,122,.45);background:rgba(127,201,122,.09);}
+.mrow .mi{flex:1;min-width:0;}
+.mrow .mn{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mrow .md{font-size:12px;color:var(--text-dim);}
+.mrow .mp{font-size:15px;font-weight:800;white-space:nowrap;text-align:right;}
+.mrow.best .mp{color:var(--green);}
+.mrow .mp small{display:block;font-size:10px;font-weight:600;color:var(--text-faint);letter-spacing:.04em;}
+.mrow .del{background:none;border:none;color:var(--text-faint);font-size:20px;cursor:pointer;padding:2px 4px;line-height:1;}
+.mgap{font-size:12px;color:var(--green);font-weight:700;text-align:center;padding:2px 0 10px;}
+
+.opreview{border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.5;background:rgba(127,201,122,.10);border:1px solid rgba(127,201,122,.30);}
+.opreview.off{background:var(--panel);border-color:var(--border);color:var(--text-dim);}
+.opreview b{font-size:15px;}
+.opreview .big{color:var(--green);}
+
+
 .appfoot{display:flex;align-items:center;justify-content:center;gap:7px;padding-top:20px;margin-top:16px;opacity:.65;}
 .appfoot svg{width:15px;height:15px;flex-shrink:0;}
 .appfoot span{font-size:9px;color:var(--text-faint);font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
@@ -179,11 +219,8 @@ h2{font-size:20px;font-weight:700;}
   <!-- ADD (comparator) -->
   <section class="screen" id="s-add">
     <div class="topbar"><button class="back" onclick="go('home')">‹</button><h2>Comparar</h2><span class="chip">Cargados: <span class="n" id="add-count">0</span></span></div>
-    <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="simulatePhoto()">📷 &nbsp;Sacar foto de la etiqueta</button>
-    <div class="tip"><span class="i">📸</span><span>Encuadrá el producto mostrando el <b>gramaje o medida</b> y la <b>etiqueta de precio de la góndola</b> en la misma foto. Si la etiqueta de góndola ya tiene todo, con eso alcanza.</span></div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:12px;color:var(--text-faint);">o cargá a mano</span><div style="flex:1;height:1px;background:var(--border);"></div></div>
 
-    <div class="field"><label>¿Qué estás comparando?</label>
+    <div class="field"><label>¿Qué comparás?</label>
       <div class="seg" id="segType">
         <button class="on" data-t="peso" onclick="setType('peso')">Peso</button>
         <button data-t="volumen" onclick="setType('volumen')">Volumen</button>
@@ -191,52 +228,70 @@ h2{font-size:20px;font-weight:700;}
         <button data-t="unidad" onclick="setType('unidad')">Unidades</button>
       </div>
     </div>
-    <div class="field"><label>Nombre o marca</label><input class="input" id="i-name" placeholder="Ej: Arroz Gallo Oro"></div>
+
     <div class="row">
-      <div class="field"><label>Precio ($)</label><input class="input" id="i-price" type="number" inputmode="decimal" placeholder="135.50"></div>
-      <div class="field"><label>Cantidad</label><input class="input" id="i-qty" type="number" inputmode="decimal" placeholder="1"></div>
-      <div class="field" style="flex:0 0 96px;"><label>Unidad</label><select class="select" id="i-unit" onchange="onUnitChange()"></select></div>
+      <div class="field"><label>Precio ($)</label><input class="input big-in" id="i-price" type="number" inputmode="decimal" placeholder="1890"></div>
+      <div class="field"><label>Contenido</label><input class="input big-in" id="i-qty" type="number" inputmode="decimal" placeholder="473"></div>
     </div>
+    <div class="units" id="i-units"></div>
+
     <div id="pano-field" style="display:none;">
       <div class="field"><label>¿Cuánto mide cada paño? (cm)</label><input class="input" id="i-pano" type="number" inputmode="decimal" placeholder="Ej: 22"></div>
       <p class="hint">↑ Convertimos los paños a metros para poder compararlos contra rollos en metros.</p>
     </div>
 
-    <button class="toggle-link" id="offer-toggle" onclick="toggleOffer('add')">＋ ¿Hay oferta por cantidad? (3x2, 2do al 50%…)</button>
+    <button class="toggle-link" id="name-toggle" onclick="toggleName()">＋ Ponerle nombre (opcional)</button>
+    <div class="field" id="name-field" style="display:none;"><input class="input" id="i-name" placeholder="Ej: lata / botella"></div>
+
+    <button class="toggle-link" id="offer-toggle" onclick="toggleOffer('add')">＋ ¿Hay oferta o precio por cantidad?</button>
     <div id="offer-field" style="display:none;">
-      <div class="row">
-        <div class="field"><label>Llevando (cant.)</label><input class="input" id="i-offer-qty" type="number" inputmode="decimal" placeholder="Ej: 2"></div>
-        <div class="field"><label>Pagás en total ($)</label><input class="input" id="i-offer-total" type="number" inputmode="decimal" placeholder="Ej: 2100"></div>
+      <div class="seg seg-sm">
+        <button class="on" data-o="umbral" onclick="setOfferMode('add','umbral')">3 o más</button>
+        <button data-o="pack" onclick="setOfferMode('add','pack')">Pack</button>
+        <button data-o="nxm" onclick="setOfferMode('add','nxm')">3x2</button>
+        <button data-o="segundo" onclick="setOfferMode('add','segundo')">2do %</button>
       </div>
-      <p class="hint">Calculamos el precio real por unidad con la oferta aplicada.</p>
+      <div class="omode on" data-o="umbral" data-ctx="add"><div class="row">
+        <div class="field"><label>Llevando (mín.)</label><input class="input o-in" id="o-min" type="number" inputmode="numeric" placeholder="3"></div>
+        <div class="field"><label>C/u queda ($)</label><input class="input o-in" id="o-uprice" type="number" inputmode="decimal" placeholder="800"></div>
+      </div><p class="hint">Típico de mayoristas: el descuento vale de esa cantidad en adelante.</p></div>
+      <div class="omode" data-o="pack" data-ctx="add"><div class="row">
+        <div class="field"><label>Pack de (cant.)</label><input class="input o-in" id="o-packq" type="number" inputmode="numeric" placeholder="6"></div>
+        <div class="field"><label>Pagás total ($)</label><input class="input o-in" id="o-packt" type="number" inputmode="decimal" placeholder="4500"></div>
+      </div></div>
+      <div class="omode" data-o="nxm" data-ctx="add"><div class="row">
+        <div class="field"><label>Llevás</label><input class="input o-in" id="o-n" type="number" inputmode="numeric" placeholder="3"></div>
+        <div class="field"><label>Pagás</label><input class="input o-in" id="o-m" type="number" inputmode="numeric" placeholder="2"></div>
+      </div></div>
+      <div class="omode" data-o="segundo" data-ctx="add">
+        <div class="field"><label>El 2do con % de descuento</label><input class="input o-in" id="o-pct" type="number" inputmode="numeric" placeholder="50"></div>
+      </div>
+      <div class="qpick"><div class="lb">¿Cuántos vas a llevar?<small>Define si la oferta te aplica</small></div>
+        <div class="stepper"><button onclick="planStep('add',-1)">−</button><span class="q" id="o-plan">3</span><button onclick="planStep('add',1)">＋</button></div>
+      </div>
+      <div class="opreview off" id="o-preview">Completá la oferta y te muestro cuánto te sale de verdad.</div>
     </div>
 
-    <button class="btn btn-green btn-sm" style="margin-top:4px;" onclick="addProduct()">＋ Agregar a la comparación</button>
-    <div class="mt-auto"><button class="btn btn-accent" id="btn-goto-list" onclick="go('list')" disabled>Ver comparación (0)</button></div>
+    <button class="btn btn-green" style="margin-top:4px;" onclick="addProduct()">＋ Agregar a la comparación</button>
+
+    <div id="mini-wrap" style="display:none;">
+      <div class="section-title">Cargados</div>
+      <div id="mini-list"></div>
+    </div>
+
+    <div class="mt-auto"><button class="btn btn-accent" id="btn-goto-list" onclick="compare()" disabled>Ver resultado completo</button></div>
     <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-add" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-add)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-add)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-add)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
-  </section>
-
-  <!-- COMPARE LIST -->
-  <section class="screen" id="s-list">
-    <div class="topbar"><button class="back" onclick="go('add')">‹</button><h2>Tu comparación</h2></div>
-    <p class="sub" id="list-sub" style="margin-bottom:14px;">Cargá al menos 2 productos.</p>
-    <div id="list-container"></div>
-    <div class="mt-auto stack">
-      <button class="btn btn-ghost btn-sm" onclick="go('add')">＋ Agregar otro producto</button>
-      <button class="btn btn-accent" id="btn-do-compare" onclick="compare()" disabled>Comparar precios</button>
-    </div>
-    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-list" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-list)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-list)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-list)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
   </section>
 
   <!-- RESULTS -->
   <section class="screen" id="s-results">
-    <div class="topbar"><button class="back" onclick="go('list')">‹</button><h2>Resultado</h2></div>
+    <div class="topbar"><button class="back" onclick="go('add')">‹</button><h2>Resultado</h2></div>
     <div id="results-container"></div>
     <div class="mt-auto stack">
-      <button class="btn btn-green btn-sm" onclick="addWinnerToCart()">🛒 &nbsp;Agregar ganador a mi lista</button>
+      <button class="btn btn-green" id="btn-send" onclick="openSheet(0)">🛒 &nbsp;Mandar a mi lista</button>
       <div class="row">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="newComparison()">↺ Comparar otra cosa</button>
         <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="saveComparison()">💾 Guardar</button>
-        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="reset()">↺ De nuevo</button>
       </div>
     </div>
     <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-res" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-res)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-res)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-res)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
@@ -249,24 +304,39 @@ h2{font-size:20px;font-weight:700;}
     <div id="cart-container"></div>
 
     <div class="section-title" style="margin-top:8px;">Agregar producto</div>
-    <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="simulateCartPhoto()">📷 &nbsp;Sacar foto</button>
-    <div class="tip"><span class="i">📸</span><span>Mostrá el producto y la <b>etiqueta de precio de góndola</b> en la misma toma.</span></div>
+    <div class="field"><input class="input" id="c-name" placeholder="Producto"></div>
     <div class="row">
-      <div class="field" style="flex:2;"><label>Producto</label><input class="input" id="c-name" placeholder="Ej: Leche"></div>
-      <div class="field" style="flex:1;"><label>Cantidad</label><input class="input" id="c-qty" type="number" inputmode="numeric" placeholder="1"></div>
+      <div class="field" style="flex:2;"><label>Precio c/u ($)</label><input class="input big-in" id="c-price" type="number" inputmode="decimal" placeholder="990"></div>
+      <div class="field" style="flex:1;"><label>Cantidad</label><input class="input big-in" id="c-qty" type="number" inputmode="numeric" placeholder="1"></div>
     </div>
-    <div class="field"><label>Precio c/u ($)</label><input class="input" id="c-price" type="number" inputmode="decimal" placeholder="990"></div>
 
-    <button class="toggle-link" id="c-offer-toggle" onclick="toggleOffer('cart')">＋ ¿Oferta por cantidad?</button>
+    <button class="toggle-link" id="c-offer-toggle" onclick="toggleOffer('cart')">＋ ¿Oferta o precio por cantidad?</button>
     <div id="c-offer-field" style="display:none;">
-      <div class="row">
-        <div class="field"><label>Llevando (cant.)</label><input class="input" id="c-offer-qty" type="number" inputmode="numeric" placeholder="Ej: 3"></div>
-        <div class="field"><label>Pagás en total ($)</label><input class="input" id="c-offer-total" type="number" inputmode="decimal" placeholder="Ej: 2000"></div>
+      <div class="seg seg-sm">
+        <button class="on" data-o="umbral" onclick="setOfferMode('cart','umbral')">3 o más</button>
+        <button data-o="pack" onclick="setOfferMode('cart','pack')">Pack</button>
+        <button data-o="nxm" onclick="setOfferMode('cart','nxm')">3x2</button>
+        <button data-o="segundo" onclick="setOfferMode('cart','segundo')">2do %</button>
       </div>
-      <p class="hint">Usamos el precio de la oferta como total de esa línea.</p>
+      <div class="omode on" data-o="umbral" data-ctx="cart"><div class="row">
+        <div class="field"><label>Llevando (mín.)</label><input class="input o-in" id="co-min" type="number" inputmode="numeric" placeholder="3"></div>
+        <div class="field"><label>C/u queda ($)</label><input class="input o-in" id="co-uprice" type="number" inputmode="decimal" placeholder="800"></div>
+      </div></div>
+      <div class="omode" data-o="pack" data-ctx="cart"><div class="row">
+        <div class="field"><label>Pack de (cant.)</label><input class="input o-in" id="co-packq" type="number" inputmode="numeric" placeholder="6"></div>
+        <div class="field"><label>Pagás total ($)</label><input class="input o-in" id="co-packt" type="number" inputmode="decimal" placeholder="4500"></div>
+      </div></div>
+      <div class="omode" data-o="nxm" data-ctx="cart"><div class="row">
+        <div class="field"><label>Llevás</label><input class="input o-in" id="co-n" type="number" inputmode="numeric" placeholder="3"></div>
+        <div class="field"><label>Pagás</label><input class="input o-in" id="co-m" type="number" inputmode="numeric" placeholder="2"></div>
+      </div></div>
+      <div class="omode" data-o="segundo" data-ctx="cart">
+        <div class="field"><label>El 2do con % de descuento</label><input class="input o-in" id="co-pct" type="number" inputmode="numeric" placeholder="50"></div>
+      </div>
+      <div class="opreview off" id="co-preview">Completá la oferta y te muestro el total de la línea.</div>
     </div>
 
-    <button class="btn btn-green btn-sm" onclick="addCartItem()">＋ Agregar a la lista</button>
+    <button class="btn btn-green" onclick="addCartItem()">＋ Agregar a la lista</button>
     <div class="mt-auto stack">
       <button class="btn btn-ghost btn-sm" onclick="go('add')">⚖️ &nbsp;Ir a comparar un producto</button>
       <button class="btn btn-accent" id="btn-close-purchase" onclick="closePurchase()" disabled>Cerrar compra</button>
@@ -281,6 +351,20 @@ h2{font-size:20px;font-weight:700;}
     <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-hist" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-hist)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-hist)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-hist)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
   </section>
 
+  <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <h3>Mandar a mi lista</h3>
+    <div class="shsub" id="sh-sub"></div>
+    <div class="field"><label>¿Cómo lo anotamos?</label><input class="input" id="sh-name" placeholder="Ej: Cerveza lata"></div>
+    <div class="qpick"><div class="lb">Cantidad<small id="sh-qsub">Cuántos vas a llevar</small></div>
+      <div class="stepper"><button onclick="sheetStep(-1)">−</button><span class="q" id="sh-qty">1</span><button onclick="sheetStep(1)">＋</button></div>
+    </div>
+    <div class="opreview" id="sh-total"></div>
+    <button class="btn btn-green" onclick="confirmSend()">＋ &nbsp;Agregar a la lista</button>
+    <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="closeSheet()">Cancelar</button>
+  </div>
+
   <div id="toast"></div>
 </div>
 
@@ -292,19 +376,125 @@ const UNITS={
   unidad:{base:'u',units:{'u':1,'docena':12,'pack':1}}
 };
 const PER_LABEL={peso:'por kg',volumen:'por litro',longitud:'por metro',unidad:'por unidad'};
+const PER_SHORT={peso:'POR KG',volumen:'POR LITRO',longitud:'POR METRO',unidad:'POR UNIDAD'};
 const PER_SCALE={peso:1000,volumen:1000,longitud:1,unidad:1};
 const COLORS=['#FF6B35','#FF3D57','#7FC97A','#3C82F6','#B368D9','#F5A623'];
 let state={type:'peso',compareProducts:[],cart:[]};
-let offerOn={add:false,cart:false};
 
 const LS={cart:'cualconviene_cart',hist:'cualconviene_history',saved:'cualconviene_saved'};
+
+// ── Motor de ofertas ─────────────────────────────────────────────────────
+// Devuelve cuánto pagás EN TOTAL por `q` unidades, con la oferta aplicada.
+// `base` es el precio de una unidad suelta, sin oferta.
+function offerCost(off,q,base){
+  q=Math.max(0,Math.floor(q));
+  if(!off||q===0)return q*base;
+  switch(off.mode){
+    case 'umbral':  // llevando N o más, c/u a $X
+      return q>=off.minQty ? q*off.unitPrice : q*base;
+    case 'pack':{   // pack cerrado de N por $Y; el resto va suelto
+      const packs=Math.floor(q/off.packQty), rem=q%off.packQty;
+      return packs*off.packTotal + rem*base;
+    }
+    case 'nxm':{    // 3x2: cada grupo de n te cobra m
+      const g=Math.floor(q/off.n), rem=q%off.n;
+      return g*off.m*base + rem*base;
+    }
+    case 'segundo':{ // 2do al X%
+      const pairs=Math.floor(q/2), rem=q%2;
+      return pairs*(base + base*(1-off.pct/100)) + rem*base;
+    }
+  }
+  return q*base;
+}
+// La cantidad "natural" de la oferta: cuántos hay que llevar para que aplique.
+function offerMinQty(off){
+  if(!off)return 1;
+  return off.mode==='umbral'?off.minQty:off.mode==='pack'?off.packQty:off.mode==='nxm'?off.n:2;
+}
+function offerApplies(off,q){return off?q>=offerMinQty(off):false;}
+function offerLabel(off){
+  if(!off)return'';
+  switch(off.mode){
+    case 'umbral':return off.minQty+'+ a $'+fmtMoney(off.unitPrice)+' c/u';
+    case 'pack':return 'pack x'+off.packQty+' $'+fmtMoney(off.packTotal);
+    case 'nxm':return off.n+'x'+off.m;
+    case 'segundo':return '2do −'+off.pct+'%';
+  }
+  return '';
+}
+function fmtMoney(n){return Number(n).toLocaleString('es-AR',{maximumFractionDigits:0});}
+
+// ── Estado de los bloques de oferta (comparador y lista) ─────────────────
+const OF={
+  add :{p:'o-', mode:'umbral',on:false,plan:3,prev:'o-preview'},
+  cart:{p:'co-',mode:'umbral',on:false,plan:3,prev:'co-preview'}
+};
+function ofVal(ctx,suffix){const el=document.getElementById(OF[ctx].p+suffix);return el?parseFloat(el.value):NaN;}
+// Lee la oferta del formulario. `soft`=true no muestra errores (para el preview en vivo).
+function readOffer(ctx,soft){
+  const o=OF[ctx];
+  if(!o.on)return null;
+  const bad=m=>{if(!soft)toast(m);return undefined;};
+  if(o.mode==='umbral'){
+    const min=ofVal(ctx,'min'),up=ofVal(ctx,'uprice');
+    if(!min||min<1||!up||up<=0)return bad('Completá desde cuántos y a cuánto queda c/u');
+    return {mode:'umbral',minQty:Math.round(min),unitPrice:up};
+  }
+  if(o.mode==='pack'){
+    const pq=ofVal(ctx,'packq'),pt=ofVal(ctx,'packt');
+    if(!pq||pq<1||!pt||pt<=0)return bad('Completá el pack (cantidad y total)');
+    return {mode:'pack',packQty:Math.round(pq),packTotal:pt};
+  }
+  if(o.mode==='nxm'){
+    const n=ofVal(ctx,'n'),m=ofVal(ctx,'m');
+    if(!n||!m||n<2||m<1||m>=n)return bad('En un 3x2, "pagás" tiene que ser menor que "llevás"');
+    return {mode:'nxm',n:Math.round(n),m:Math.round(m)};
+  }
+  const pct=ofVal(ctx,'pct');
+  if(!pct||pct<=0||pct>100)return bad('Poné un descuento entre 1 y 100');
+  return {mode:'segundo',pct:pct};
+}
+function setOfferMode(ctx,mode){
+  OF[ctx].mode=mode;
+  const scope=ctx==='add'?'offer-field':'c-offer-field';
+  document.querySelectorAll('#'+scope+' .seg-sm button').forEach(b=>b.classList.toggle('on',b.dataset.o===mode));
+  document.querySelectorAll('.omode[data-ctx="'+ctx+'"]').forEach(d=>d.classList.toggle('on',d.dataset.o===mode));
+  const min=offerMinQty(readOffer(ctx,true)||{mode:mode,minQty:3,packQty:6,n:3});
+  if(OF[ctx].plan<min)OF[ctx].plan=min;
+  renderPlan(ctx);updatePreview(ctx);
+}
+function planStep(ctx,d){OF[ctx].plan=Math.max(1,OF[ctx].plan+d);renderPlan(ctx);updatePreview(ctx);}
+function renderPlan(ctx){const el=document.getElementById('o-plan');if(ctx==='add'&&el)el.textContent=OF[ctx].plan;}
+function updatePreview(ctx){
+  const box=document.getElementById(OF[ctx].prev);
+  if(!box)return;
+  const base=parseFloat(document.getElementById(ctx==='add'?'i-price':'c-price').value);
+  const off=readOffer(ctx,true);
+  if(!off||!base||base<=0){
+    box.className='opreview off';
+    box.textContent=ctx==='add'?'Cargá el precio suelto y la oferta, y te muestro cuánto te sale de verdad.':'Cargá el precio c/u y la oferta para ver el total.';
+    return;
+  }
+  const q=ctx==='add'?OF[ctx].plan:Math.max(1,parseInt(document.getElementById('c-qty').value)||1);
+  const total=offerCost(off,q,base), sinOff=q*base, cu=total/q;
+  const aplica=offerApplies(off,q);
+  box.className='opreview'+(aplica?'':' off');
+  if(!aplica){
+    box.innerHTML='Llevando <b>'+q+'</b> la oferta <b>no</b> te aplica todavía — pagás $'+fmtMoney(sinOff)+'. Necesitás <b>'+offerMinQty(off)+'</b> o más.';
+    return;
+  }
+  const ahorro=sinOff-total;
+  box.innerHTML='Llevando <b>'+q+'</b> pagás <b class="big">$'+fmtMoney(total)+'</b> — sale <b>$'+fmtMoney(cu)+'</b> c/u'+
+    (ahorro>0.5?'<br>Te ahorrás $'+fmtMoney(ahorro)+' contra el precio suelto.':'');
+}
 function lsGet(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
 function go(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+id).classList.add('active');
-  if(id==='list')renderCompareList();
+  if(id==='add')renderMini();
   if(id==='cart')renderCart();
   if(id==='history')renderHistory();
   document.getElementById('s-'+id).scrollTop=0;
@@ -314,29 +504,61 @@ function setType(t){
   if(state.compareProducts.length>0&&t!==state.type){toast('Ya comparás por '+labelOf(state.type)+'. Terminá o reiniciá.');return;}
   state.type=t;
   document.querySelectorAll('#segType button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  fillUnits();onUnitChange();
+  fillUnits();onUnitChange();updatePreview('add');
 }
 function labelOf(t){return {peso:'peso',volumen:'volumen',longitud:'largo',unidad:'unidades'}[t];}
-function fillUnits(){const sel=document.getElementById('i-unit');sel.innerHTML='';Object.keys(UNITS[state.type].units).forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});}
-function onUnitChange(){document.getElementById('pano-field').style.display=document.getElementById('i-unit').value==='paño'?'block':'none';}
-
-function toggleOffer(ctx){
-  offerOn[ctx]=!offerOn[ctx];
-  const field=document.getElementById(ctx==='add'?'offer-field':'c-offer-field');
-  const tog=document.getElementById(ctx==='add'?'offer-toggle':'c-offer-toggle');
-  field.style.display=offerOn[ctx]?'block':'none';
-  tog.textContent=(offerOn[ctx]?'− ':'＋ ')+(ctx==='add'?'¿Hay oferta por cantidad? (3x2, 2do al 50%…)':'¿Oferta por cantidad?');
+// Unidad elegida por tipo — se acuerda de la última que usaste
+const lastUnit={peso:'g',volumen:'ml',longitud:'m',unidad:'u'};
+function fillUnits(){
+  const box=document.getElementById('i-units');box.innerHTML='';
+  Object.keys(UNITS[state.type].units).forEach(u=>{
+    const b=document.createElement('button');
+    b.textContent=u;b.dataset.u=u;
+    b.className=(u===lastUnit[state.type])?'on':'';
+    b.onclick=()=>setUnit(u);
+    box.appendChild(b);
+  });
+}
+function setUnit(u){
+  lastUnit[state.type]=u;
+  document.querySelectorAll('#i-units button').forEach(b=>b.classList.toggle('on',b.dataset.u===u));
+  onUnitChange();
+}
+function curUnit(){return lastUnit[state.type];}
+function onUnitChange(){document.getElementById('pano-field').style.display=curUnit()==='paño'?'block':'none';}
+function toggleName(){
+  const f=document.getElementById('name-field'),t=document.getElementById('name-toggle');
+  const on=f.style.display==='none';
+  f.style.display=on?'block':'none';
+  t.textContent=(on?'− ':'＋ ')+'Ponerle nombre (opcional)';
+  if(on)document.getElementById('i-name').focus();
 }
 
+function toggleOffer(ctx){
+  const o=OF[ctx];o.on=!o.on;
+  const field=document.getElementById(ctx==='add'?'offer-field':'c-offer-field');
+  const tog=document.getElementById(ctx==='add'?'offer-toggle':'c-offer-toggle');
+  field.style.display=o.on?'block':'none';
+  tog.textContent=(o.on?'− ':'＋ ')+(ctx==='add'?'¿Hay oferta o precio por cantidad?':'¿Oferta o precio por cantidad?');
+  if(o.on){renderPlan(ctx);updatePreview(ctx);}
+}
+function clearOffer(ctx){
+  const o=OF[ctx];
+  ['min','uprice','packq','packt','n','m','pct'].forEach(s=>{const el=document.getElementById(o.p+s);if(el)el.value='';});
+  o.plan=3;renderPlan(ctx);
+  if(o.on)toggleOffer(ctx);
+}
+
+const AUTO=['Opción A','Opción B','Opción C','Opción D','Opción E'];
 function addProduct(){
-  const name=document.getElementById('i-name').value.trim();
+  let name=document.getElementById('i-name').value.trim();
   const price=parseFloat(document.getElementById('i-price').value);
   const qty=parseFloat(document.getElementById('i-qty').value);
-  const unit=document.getElementById('i-unit').value;
-  if(!name){toast('Ponele un nombre 🙂');return;}
-  if(!price||price<=0){toast('Falta el precio');return;}
-  if(!qty||qty<=0){toast('Falta la cantidad');return;}
+  const unit=curUnit();
+  if(!price||price<=0){toast('Falta el precio');document.getElementById('i-price').focus();return;}
+  if(!qty||qty<=0){toast('Falta el contenido');document.getElementById('i-qty').focus();return;}
   if(state.compareProducts.length>=5){toast('Máximo 5 productos');return;}
+  if(!name)name=AUTO[state.compareProducts.length];
 
   let baseQty;
   if(unit==='paño'){
@@ -345,95 +567,162 @@ function addProduct(){
     baseQty=qty*(pano/100);
   }else{baseQty=qty*UNITS[state.type].units[unit];}
 
-  // bulk offer
-  let effTotalPrice=price, effPacks=1, offer=null;
-  if(offerOn.add){
-    const oq=parseFloat(document.getElementById('i-offer-qty').value);
-    const ot=parseFloat(document.getElementById('i-offer-total').value);
-    if(!oq||oq<=0||!ot||ot<=0){toast('Completá la oferta (cantidad y total)');return;}
-    effPacks=oq;effTotalPrice=ot;offer={qty:oq,total:ot};
-  }
-  const totalBase=baseQty*effPacks;
-  const perUnit=(effTotalPrice/totalBase)*PER_SCALE[state.type];
-  const perPack=effTotalPrice/effPacks; // precio real por unidad de producto
+  const offer=readOffer('add');
+  if(offer===undefined)return; // faltan datos de la oferta
+  const planQty=offer?OF.add.plan:1;
+  const totalCost=offerCost(offer,planQty,price);
+  const perPack=totalCost/planQty;
+  const perUnit=(totalCost/(baseQty*planQty))*PER_SCALE[state.type];
+  const applies=offer?offerApplies(offer,planQty):false;
 
-  state.compareProducts.push({name,price,perPack,qty,unit,type:state.type,perUnit,offer,color:COLORS[state.compareProducts.length%COLORS.length]});
-  document.getElementById('i-name').value='';document.getElementById('i-price').value='';document.getElementById('i-qty').value='';document.getElementById('i-pano').value='';
-  document.getElementById('i-offer-qty').value='';document.getElementById('i-offer-total').value='';
-  if(offerOn.add)toggleOffer('add');
-  toast('✓ '+name+' agregado');updateAddBtn();
+  state.compareProducts.push({name,price,perPack,qty,unit,type:state.type,perUnit,
+    offer,planQty,totalCost,applies,color:COLORS[state.compareProducts.length%COLORS.length]});
+  ['i-name','i-price','i-qty'].forEach(id=>document.getElementById(id).value='');
+  clearOffer('add');
+  updateAddBtn();renderMini();
+  document.getElementById('i-price').focus(); // listo para el siguiente
 }
-function updateAddBtn(){const n=state.compareProducts.length;document.getElementById('add-count').textContent=n;const b=document.getElementById('btn-goto-list');b.textContent='Ver comparación ('+n+')';b.disabled=n===0;}
-
-function renderCompareList(){
-  const c=document.getElementById('list-container');
-  if(state.compareProducts.length===0){c.innerHTML='<div class="empty">Todavía no cargaste nada.<br>Volvé y agregá productos.</div>';}
-  else{c.innerHTML='<div class="plist">'+state.compareProducts.map((p,i)=>`
-    <div class="pcard"><div class="avatar" style="background:${p.color};">${p.name.charAt(0).toUpperCase()}</div>
-    <div class="meta"><div class="nm">${esc(p.name)}${p.offer?'<span class="badge-offer">oferta</span>':''}</div><div class="dt">${p.qty} ${p.unit} · $${p.price.toFixed(2)}${p.offer?' · '+p.offer.qty+'x $'+p.offer.total:''}</div></div>
-    <button class="del" onclick="rmCompare(${i})">×</button></div>`).join('')+'</div>';}
-  document.getElementById('list-sub').textContent=state.compareProducts.length<2?'Cargá al menos 2 productos para comparar.':'Comparando '+labelOf(state.type)+' · '+state.compareProducts.length+' productos';
-  document.getElementById('btn-do-compare').disabled=state.compareProducts.length<2;
+function updateAddBtn(){
+  const n=state.compareProducts.length;
+  document.getElementById('add-count').textContent=n;
+  const b=document.getElementById('btn-goto-list');
+  b.disabled=n<2;
+  b.textContent=n<2?'Cargá 2 para comparar':'Ver resultado completo';
 }
-function rmCompare(i){state.compareProducts.splice(i,1);updateAddBtn();renderCompareList();}
+// Ranking en vivo: apenas hay 2 productos ya ves quién gana, sin cambiar de pantalla
+function renderMini(){
+  const wrap=document.getElementById('mini-wrap'),list=document.getElementById('mini-list');
+  const ps=state.compareProducts;
+  wrap.style.display=ps.length?'block':'none';
+  if(!ps.length)return;
+  const best=Math.min(...ps.map(p=>p.perUnit));
+  const worst=Math.max(...ps.map(p=>p.perUnit));
+  list.innerHTML=ps.map((p,i)=>{
+    const win=ps.length>1&&p.perUnit===best;
+    return `<div class="mrow ${win?'best':''}">
+      <div class="mi"><div class="mn">${win?'★ ':''}${esc(p.name)}${p.applies?'<span class="badge-offer">'+esc(offerLabel(p.offer))+'</span>':''}</div>
+      <div class="md">${p.qty} ${p.unit} · $${fmtMoney(p.price)}${p.applies?' · llevando '+p.planQty:''}</div></div>
+      <div class="mp">$${fmt(p.perUnit)}<small>${PER_SHORT[p.type]}</small></div>
+      <button class="del" onclick="rmCompare(${i})">×</button></div>`;}).join('')
+    +(ps.length>1&&worst>best?'<div class="mgap">El más barato te ahorra '+((worst-best)/worst*100).toFixed(0)+'% frente al más caro</div>':'');
+}
 
-let lastBest=null;
+function rmCompare(i){state.compareProducts.splice(i,1);updateAddBtn();renderMini();}
+
+let lastBest=null,lastSorted=[];
 function compare(){
   if(state.compareProducts.length<2){toast('Necesitás 2 o más');return;}
   const sorted=[...state.compareProducts].sort((a,b)=>a.perUnit-b.perUnit);
+  lastSorted=sorted;
   const best=sorted[0],worst=sorted[sorted.length-1];lastBest=best;
   const savePct=((worst.perUnit-best.perUnit)/worst.perUnit*100);
   const maxPer=worst.perUnit;const perLabel=PER_LABEL[best.type];
   document.getElementById('results-container').innerHTML=`
     <div class="winner"><div class="save">−${savePct.toFixed(0)}%</div><div class="tag">🏆 Más conveniente</div>
-      <div class="nm">${esc(best.name)}</div><div class="unit">$${fmt(best.perUnit)} ${perLabel}${best.offer?' · con oferta':''}</div></div>
+      <div class="nm">${esc(best.name)}</div><div class="unit">$${fmt(best.perUnit)} ${perLabel}${best.applies?' · llevando '+best.planQty:''}</div></div>
     <div class="rank">${sorted.map((p,i)=>{const w=Math.max(8,(p.perUnit/maxPer*100));
-      return `<div class="rrow ${i===0?'best':''}"><div class="pos">${i===0?'★':'#'+(i+1)}</div>
-      <div class="bar-wrap"><div class="bar-top"><span class="nm">${esc(p.name)}${p.offer?'<span class="badge-offer">of.</span>':''}</span><span class="pu">$${fmt(p.perUnit)}</span></div>
-      <div class="track"><div class="fill" style="width:0%" data-w="${w}"></div></div></div></div>`;}).join('')}</div>
+      return `<div class="rrow pick ${i===0?'best':''}" onclick="openSheet(${i})"><div class="pos">${i===0?'★':'#'+(i+1)}</div>
+      <div class="bar-wrap"><div class="bar-top"><span class="nm">${esc(p.name)}${p.applies?'<span class="badge-offer">'+esc(offerLabel(p.offer))+'</span>':''}</span><span class="pu">$${fmt(p.perUnit)}</span></div>
+      <div class="track"><div class="fill" style="width:0%" data-w="${w}"></div></div></div><div class="go">›</div></div>`;}).join('')}</div>
+    <div class="note">Tocá cualquiera para mandarlo a tu lista.</div>
+    ${best.applies?'<div class="note" style="color:var(--accent-soft);">⚠️ El ganador gana <b>llevando '+best.planQty+' unidades</b>. Si llevás menos, la oferta no aplica y el resultado puede cambiar.</div>':''}
     <div class="note">Precios normalizados ${perLabel}.<br>Comparando ${state.compareProducts.length} productos por ${labelOf(best.type)}.</div>`;
+  const sb=document.getElementById('btn-send');
+  sb.textContent='🛒  Mandar a mi lista';sb.setAttribute('onclick','openSheet(0)');
   go('results');
   requestAnimationFrame(()=>setTimeout(()=>{document.querySelectorAll('#results-container .fill').forEach(f=>{f.style.width=f.dataset.w+'%';});},80));
 }
 function saveComparison(){if(!lastBest)return;const saved=lsGet(LS.saved,[]);saved.unshift({date:Date.now(),type:state.type,best:lastBest.name,perUnit:lastBest.perUnit,count:state.compareProducts.length});lsSet(LS.saved,saved);toast('💾 Comparativa guardada');}
-function addWinnerToCart(){if(!lastBest)return;state.cart.push({name:lastBest.name,qty:1,unitPrice:lastBest.perPack,offer:lastBest.offer?{qty:lastBest.offer.qty,total:lastBest.offer.total}:null,fromCompare:true});saveCart();toast('🛒 '+lastBest.name+' → a tu lista');}
+// ── Mandar a la lista, con nombre ────────────────────────────────────────
+let sheetP=null,sheetQty=1;
+function openSheet(i){
+  const p=lastSorted[i];if(!p)return;
+  sheetP=p;
+  sheetQty=p.offer?p.planQty:1;
+  const auto=AUTO.indexOf(p.name)>=0;   // ¿quedó con el nombre automático?
+  const inp=document.getElementById('sh-name');
+  inp.value=auto?'':p.name;
+  inp.placeholder=auto?('Ej: '+p.qty+' '+p.unit):'Nombre';
+  document.getElementById('sh-sub').innerHTML=
+    p.qty+' '+p.unit+' · $'+fmtMoney(p.price)+' c/u · <b>$'+fmt(p.perUnit)+' '+PER_LABEL[p.type]+'</b>'
+    +(p.offer?'<br>Con la oferta '+esc(offerLabel(p.offer))+' cargada.':'');
+  document.getElementById('sh-qsub').textContent=p.offer?'Desde '+offerMinQty(p.offer)+' aplica la oferta':'Cuántos vas a llevar';
+  renderSheet();
+  document.getElementById('sheet-bg').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+  if(auto)setTimeout(()=>inp.focus(),300);
+}
+function closeSheet(){
+  document.getElementById('sheet-bg').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+}
+function sheetStep(d){sheetQty=Math.max(1,sheetQty+d);renderSheet();}
+function renderSheet(){
+  if(!sheetP)return;
+  document.getElementById('sh-qty').textContent=sheetQty;
+  const total=offerCost(sheetP.offer,sheetQty,sheetP.price);
+  const on=offerApplies(sheetP.offer,sheetQty);
+  const box=document.getElementById('sh-total');
+  box.className='opreview'+(sheetP.offer&&!on?' off':'');
+  box.innerHTML=(sheetP.offer&&!on)
+    ? 'Con '+sheetQty+' la oferta no aplica — van <b>$'+fmtMoney(total)+'</b> a tu lista.'
+    : 'Se suman <b class="big">$'+fmtMoney(total)+'</b> a tu lista'+(on?' (oferta aplicada)':'');
+}
+function confirmSend(){
+  if(!sheetP)return;
+  const name=document.getElementById('sh-name').value.trim();
+  if(!name){toast('Ponele un nombre para reconocerlo');document.getElementById('sh-name').focus();return;}
+  state.cart.push({name,qty:sheetQty,unitPrice:sheetP.price,offer:sheetP.offer||null,fromCompare:true});
+  saveCart();closeSheet();
+  const b=document.getElementById('btn-send');
+  b.textContent='🛒  Ver mi lista ('+state.cart.length+')';
+  b.setAttribute('onclick',"go('cart')");
+  toast('✓ '+name+' → a tu lista');
+}
+// Arrancar una comparación nueva sin salir del comparador
+function newComparison(){
+  state.compareProducts=[];lastBest=null;lastSorted=[];
+  clearOffer('add');
+  ['i-name','i-price','i-qty','i-pano'].forEach(id=>document.getElementById(id).value='');
+  updateAddBtn();renderMini();go('add');
+  toast('Listo, arrancá de nuevo');
+}
 
 function renderCart(){
   const c=document.getElementById('cart-container');
-  if(state.cart.length===0){c.innerHTML='<div class="empty">Tu lista está vacía.<br>Agregá productos a mano, por foto o desde el comparador.</div>';}
+  if(state.cart.length===0){c.innerHTML='<div class="empty">Tu lista está vacía.<br>Agregalos a mano o mandalos desde el comparador.</div>';}
   else{c.innerHTML='<div class="plist">'+state.cart.map((it,i)=>{
     const line=lineTotal(it);
+    const on=offerApplies(it.offer,it.qty);
     const av=it.fromCompare?'★':it.name.charAt(0).toUpperCase();
     const avbg=it.fromCompare?'var(--green)':COLORS[i%COLORS.length];
     const avcol=it.fromCompare?'#0C1A24':'#fff';
-    const sub=it.offer?('oferta '+it.offer.qty+'x $'+it.offer.total):('$'+Number(it.unitPrice).toFixed(2)+' c/u');
-    const ctrl=it.offer?`<div class="amt">$${line.toFixed(0)}</div>`:`<div class="stepper"><button onclick="cartQty(${i},-1)">−</button><span class="q">${it.qty}</span><button onclick="cartQty(${i},1)">＋</button></div><div class="amt">$${line.toFixed(0)}</div>`;
+    let sub='$'+fmtMoney(it.unitPrice)+' c/u';
+    if(it.offer)sub+= on?(' · '+offerLabel(it.offer)+' ✓'):(' · '+offerLabel(it.offer)+' (faltan '+(offerMinQty(it.offer)-it.qty)+')');
     return `<div class="pcard"><div class="avatar" style="background:${avbg};color:${avcol};">${av}</div>
-      <div class="meta"><div class="nm">${esc(it.name)}${it.offer?'<span class="badge-offer">of.</span>':''}</div><div class="dt">${sub}</div></div>
-      ${ctrl}<button class="del" onclick="rmCartItem(${i})">×</button></div>`;}).join('')+'</div>';}
+      <div class="meta"><div class="nm">${esc(it.name)}${on?'<span class="badge-offer">of.</span>':''}</div><div class="dt">${sub}</div></div>
+      <div class="stepper"><button onclick="cartQty(${i},-1)">−</button><span class="q">${it.qty}</span><button onclick="cartQty(${i},1)">＋</button></div>
+      <div class="amt">$${fmtMoney(line)}</div><button class="del" onclick="rmCartItem(${i})">×</button></div>`;}).join('')+'</div>';}
   const total=state.cart.reduce((s,it)=>s+lineTotal(it),0);
-  const count=state.cart.reduce((s,it)=>s+(it.offer?it.offer.qty:it.qty),0);
-  document.getElementById('cart-total').textContent='$'+total.toLocaleString('es-AR',{maximumFractionDigits:0});
+  const count=state.cart.reduce((s,it)=>s+it.qty,0);
+  document.getElementById('cart-total').textContent='$'+fmtMoney(total);
   document.getElementById('cart-count').textContent=count;
   document.getElementById('btn-close-purchase').disabled=state.cart.length===0;
 }
-function lineTotal(it){return it.offer?Number(it.offer.total):it.qty*Number(it.unitPrice);}
+function lineTotal(it){return offerCost(it.offer,it.qty,Number(it.unitPrice));}
 function cartQty(i,d){const it=state.cart[i];it.qty=Math.max(1,it.qty+d);saveCart();renderCart();}
 function addCartItem(){
   const name=document.getElementById('c-name').value.trim();
   if(!name){toast('Ponele un nombre');return;}
-  let offer=null,qty=parseInt(document.getElementById('c-qty').value)||1,unitPrice=parseFloat(document.getElementById('c-price').value);
-  if(offerOn.cart){
-    const oq=parseInt(document.getElementById('c-offer-qty').value);const ot=parseFloat(document.getElementById('c-offer-total').value);
-    if(!oq||oq<=0||!ot||ot<=0){toast('Completá la oferta');return;}
-    offer={qty:oq,total:ot};unitPrice=ot/oq;qty=oq;
-  }else{
-    if(!unitPrice||unitPrice<=0){toast('Falta el precio');return;}
-  }
+  const unitPrice=parseFloat(document.getElementById('c-price').value);
+  if(!unitPrice||unitPrice<=0){toast('Falta el precio c/u');return;}
+  const offer=readOffer('cart');
+  if(offer===undefined)return;
+  let qty=parseInt(document.getElementById('c-qty').value)||1;
+  if(offer&&qty<offerMinQty(offer))qty=offerMinQty(offer);
   state.cart.push({name,qty,unitPrice,offer,fromCompare:false});
-  document.getElementById('c-name').value='';document.getElementById('c-qty').value='';document.getElementById('c-price').value='';
-  document.getElementById('c-offer-qty').value='';document.getElementById('c-offer-total').value='';
-  if(offerOn.cart)toggleOffer('cart');
+  ['c-name','c-qty','c-price'].forEach(id=>document.getElementById(id).value='');
+  clearOffer('cart');
   saveCart();renderCart();toast('✓ Agregado');
 }
 function rmCartItem(i){state.cart.splice(i,1);saveCart();renderCart();}
@@ -441,9 +730,9 @@ function saveCart(){lsSet(LS.cart,state.cart);}
 function closePurchase(){
   if(state.cart.length===0)return;
   const total=state.cart.reduce((s,it)=>s+lineTotal(it),0);
-  const count=state.cart.reduce((s,it)=>s+(it.offer?it.offer.qty:it.qty),0);
+  const count=state.cart.reduce((s,it)=>s+it.qty,0);
   const hist=lsGet(LS.hist,[]);
-  hist.unshift({date:Date.now(),total,count,items:state.cart.map(it=>({name:it.name,price:lineTotal(it),qty:it.offer?it.offer.qty:it.qty,unitPrice:Number(it.unitPrice)}))});
+  hist.unshift({date:Date.now(),total,count,items:state.cart.map(it=>({name:it.name,price:lineTotal(it),qty:it.qty,unitPrice:lineTotal(it)/it.qty}))});
   lsSet(LS.hist,hist);state.cart=[];saveCart();toast('✓ Compra cerrada y archivada');go('history');
 }
 
@@ -470,14 +759,7 @@ function renderHistory(){
 }
 function deltaBadge(pc){if(Math.abs(pc)<0.5)return '<div class="delta flat">=</div>';const cls=pc>0?'up':'down';const a=pc>0?'▲':'▼';return `<div class="delta ${cls}">${a} ${Math.abs(pc).toFixed(0)}%</div>`;}
 
-const SAMPLES=[{name:'Arroz Gallo Oro',price:1350,qty:1,unit:'kg',type:'peso'},{name:'Arroz Apolo',price:890,qty:500,unit:'g',type:'peso'},{name:'Rollo Cocina Sussex',price:2100,qty:80,unit:'paño',type:'longitud',pano:22}];
-let sIdx=0;
-function simulatePhoto(){toast('📷 Leyendo etiqueta…');setTimeout(()=>{const s=SAMPLES[sIdx%SAMPLES.length];sIdx++;setType(s.type);document.getElementById('i-name').value=s.name;document.getElementById('i-price').value=s.price;document.getElementById('i-qty').value=s.qty;fillUnits();document.getElementById('i-unit').value=s.unit;onUnitChange();if(s.pano)document.getElementById('i-pano').value=s.pano;toast('✓ Datos detectados — revisalos');},900);}
-const CART_SAMPLES=[{name:'Leche La Serenísima',qty:2,price:990},{name:'Yerba Playadito',qty:1,price:2350},{name:'Fideos Matarazzo',qty:3,price:820}];
-let cIdx=0;
-function simulateCartPhoto(){toast('📷 Leyendo etiqueta…');setTimeout(()=>{const s=CART_SAMPLES[cIdx%CART_SAMPLES.length];cIdx++;document.getElementById('c-name').value=s.name;document.getElementById('c-qty').value=s.qty;document.getElementById('c-price').value=s.price;toast('✓ Datos detectados — revisalos');},900);}
-
-function reset(){state.compareProducts=[];state.type='peso';fillUnits();setType('peso');updateAddBtn();lastBest=null;go('home');}
+function reset(){state.type='peso';fillUnits();setType('peso');newComparison();}
 function fmt(n){return n>=100?n.toFixed(0):n.toFixed(n>=10?1:2);}
 function compact(n){return n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':n.toFixed(0);}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -485,7 +767,31 @@ function shortDate(ts){const d=new Date(ts);return d.getDate()+'/'+(d.getMonth()
 function fullDate(ts){const d=new Date(ts);return d.toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});}
 let toastTimer;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1900);}
 
-state.cart=lsGet(LS.cart,[]);fillUnits();onUnitChange();updateAddBtn();
+state.cart=lsGet(LS.cart,[]);fillUnits();onUnitChange();updateAddBtn();renderMini();
+// El preview de oferta se actualiza mientras escribís
+document.querySelectorAll('.o-in').forEach(el=>{
+  const ctx=el.id.indexOf('co-')===0?'cart':'add';
+  el.addEventListener('input',()=>updatePreview(ctx));
+});
+document.getElementById('i-price').addEventListener('input',()=>updatePreview('add'));
+document.getElementById('c-price').addEventListener('input',()=>updatePreview('cart'));
+document.getElementById('c-qty').addEventListener('input',()=>updatePreview('cart'));
+
+// Enter avanza al campo siguiente y en el último agrega — sin tocar la pantalla
+function chain(id,next){
+  document.getElementById(id).addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return;
+    e.preventDefault();
+    if(typeof next==='function')next();else document.getElementById(next).focus();
+  });
+}
+chain('i-price','i-qty');
+chain('i-qty',addProduct);
+chain('i-name','i-price');
+chain('c-name','c-price');
+chain('c-price','c-qty');
+chain('c-qty',addCartItem);
+chain('sh-name',confirmSend);
 
 // ── Registro del Service Worker ──────────────────────────────────────────
 if('serviceWorker' in navigator){
