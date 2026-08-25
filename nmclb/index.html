@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="36">
+<meta name="app-version" content="37">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -143,6 +143,7 @@ h2{font-size:20px;font-weight:700;}
 .emeta{font-size:11px;color:var(--text-dim);margin-top:2px;display:flex;align-items:center;gap:6px;}
 .esrc-tag{background:var(--panel-strong);border-radius:8px;padding:1px 7px;font-size:10px;font-weight:600;}
 .cat-ingreso{background:rgba(127,201,122,.15);color:#7fc97a}
+.cat-settle{background:rgba(122,162,214,.15);color:#7aa2d6}
 .eamt.pos{color:var(--green)!important;}
 .eamt{font-family:var(--mono);font-weight:800;color:var(--red);font-size:14px;flex-shrink:0;}
 .edel{background:none;border:none;color:var(--text-faint);font-size:16px;cursor:pointer;padding:4px;}
@@ -633,7 +634,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
     </div>
     <div class="stack">
       <button class="btn btn-green" id="unlock-btn" onclick="unlockWithBio()">Desbloquear con huella</button>
-      <button class="link-btn" onclick="go('s-login')">Usar contraseña</button>
+      <button class="link-btn" onclick="useUnlockPassword()">Usar contraseña</button>
     </div>
   </section>
 
@@ -1701,8 +1702,11 @@ function skipBiometric(){ go('s-ready'); }
 // ── Login con biometría ─────────────────────────────────────────────────
 async function loginWithBiometric(){
   const ok = await verifyBiometric();
-  if(ok){ toast('✓ Verificado'); enterApp(); }
-  else toast('No se pudo verificar. Usá tu contraseña.');
+  if(!ok){ toast('No se pudo verificar. Usá tu contraseña.'); return; }
+  // Salvaguarda: sin cryptoKey en memoria no se puede descifrar nada y entrar
+  // así fue el origen del incidente de datos cifrados en capas. Se pide contraseña.
+  if(!cryptoKey){ toast('Ingresá tu contraseña para desbloquear tus datos'); return; }
+  toast('✓ Verificado'); enterApp();
 }
 
 // ── Login con contraseña ────────────────────────────────────────────────
@@ -1787,31 +1791,19 @@ async function bootApp(){
 
     if(!hasAccount && !currentUser){ go('s-welcome'); return; }
 
-    if(hasSession && bioOn){
-      const nameEl = document.getElementById('unlock-name');
-      if(nameEl) nameEl.textContent = localStorage.getItem('nmclb_name')||'';
-      go('s-unlock');
-      setTimeout(async ()=>{
-        try{
-          const ok = await verifyBiometric();
-          if(ok && cryptoKey){ initHome(); go('s-home'); }
-          else if(ok && !cryptoKey){
-            // La huella confirma que sos vos, pero sin la clave en memoria
-            // no se puede descifrar nada — pedimos la contraseña una vez más.
-            toast('Ingresá tu contraseña para desbloquear tus datos');
-            go('s-login');
-          }
-        }catch(e){}
-      }, 500);
-      return;
-    }
-
+    // Sesión viva en memoria (misma carga de página): entra directo.
     if((hasSession || currentUser) && cryptoKey){ initHome(); go('s-home'); return; }
-    if(hasSession && !cryptoKey){
+
+    // Arranque en frío: la clave de cifrado NO se persiste (vive sólo en memoria),
+    // así que sólo se reconstruye con la contraseña. Pedir la huella acá no sirve
+    // —no descifra nada— y era justamente lo que provocaba el doble pedido de huella
+    // (una en la pantalla de desbloqueo y otra en el banner del login).
+    if(hasSession){
       toast('Ingresá tu contraseña para desbloquear tus datos');
       go('s-login');
       return;
     }
+    void bioOn;
 
     go('s-login');
   }catch(err){
@@ -1822,16 +1814,20 @@ async function bootApp(){
 
 async function unlockWithBio(){
   const btn = document.getElementById('unlock-btn');
-  btn.textContent = 'Verificando…';
+  if(btn) btn.textContent = 'Verificando…';
   const ok = await verifyBiometric();
-  btn.textContent = 'Desbloquear con huella';
-  if(ok && cryptoKey){ initHome(); go('s-home'); }
+  if(btn) btn.textContent = 'Desbloquear con huella';
+  if(ok && cryptoKey){ appLocked = false; initHome(); go('s-home'); }
   else if(ok && !cryptoKey){
+    appLocked = false;
     toast('Ingresá tu contraseña para desbloquear tus datos');
     go('s-login');
   }
   else toast('No se pudo verificar. Probá de nuevo.');
 }
+
+// Salida manual desde la pantalla de desbloqueo
+function useUnlockPassword(){ appLocked = false; go('s-login'); }
 
 function initHome(){
   const now = new Date();
@@ -1917,7 +1913,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 36;
+const APP_VERSION = 37;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2286,6 +2282,7 @@ async function registerBiometric(){
     const name  = localStorage.getItem('nmclb_name')||'Usuario';
     const email = localStorage.getItem('nmclb_email')||'user@nmclb.app';
 
+    bioPromptOpen = true;
     const cred = await navigator.credentials.create({
       publicKey:{
         challenge,
@@ -2304,6 +2301,9 @@ async function registerBiometric(){
     if(e.name==='NotAllowedError') toast('Cancelado');
     else toast('No se pudo activar la huella');
     return false;
+  }finally{
+    // margen para que el evento de visibilidad del diálogo del SO ya haya pasado
+    setTimeout(()=>{ bioPromptOpen = false; }, 1000);
   }
 }
 
@@ -2317,10 +2317,58 @@ async function verifyBiometric(){
       const raw = Uint8Array.from(atob(idB64), c=>c.charCodeAt(0));
       opts.allowCredentials = [{ id:raw, type:'public-key', transports:['internal'] }];
     }
+    bioPromptOpen = true;
     await navigator.credentials.get({ publicKey: opts });
     return true;
   }catch(e){ return false; }
+  finally{ setTimeout(()=>{ bioPromptOpen = false; }, 1000); }
 }
+
+// ── Auto-bloqueo al volver de segundo plano ──────────────────────────────
+// Si la app queda en segundo plano más de LOCK_GRACE_MS, al volver pide huella.
+const LOCK_GRACE_MS = 15000;   // 15 segundos de gracia
+let bioPromptOpen = false;     // true mientras el SO muestra el diálogo de huella
+let bgSince = null;            // momento en que la app pasó a segundo plano
+let appLocked = false;
+
+// Pantallas previas al ingreso: acá no hay nada que bloquear
+const PUBLIC_SCREENS = ['s-welcome','s-register','s-biometric','s-phrase','s-ready','s-login','s-unlock'];
+
+function currentScreenId(){
+  const el = document.querySelector('.screen.active');
+  return el ? el.id : '';
+}
+
+function closeAllModals(){
+  document.querySelectorAll('[id^="modal-"]').forEach(m=>{
+    if(m.style && m.style.display === 'flex') m.style.display = 'none';
+  });
+}
+
+function lockApp(){
+  if(appLocked) return;
+  if(!cryptoKey) return;                                     // sin clave no hay sesión descifrada que proteger
+  if(localStorage.getItem('nmclb_bioEnabled')!=='1') return; // sin huella no habría cómo desbloquear
+  appLocked = true;
+  closeAllModals();
+  const nameEl = document.getElementById('unlock-name');
+  if(nameEl) nameEl.textContent = localStorage.getItem('nmclb_name')||'';
+  go('s-unlock');
+  setTimeout(()=>{ if(appLocked) unlockWithBio(); }, 400);
+}
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden'){
+    if(bioPromptOpen) return;                              // el diálogo del SO no cuenta como salir
+    if(PUBLIC_SCREENS.includes(currentScreenId())) return; // todavía no entró a la app
+    bgSince = Date.now();
+  }else{
+    if(bgSince === null) return;
+    const away = Date.now() - bgSince;
+    bgSince = null;
+    if(away >= LOCK_GRACE_MS) lockApp();
+  }
+});
 
 // ── Cotizaciones de moneda extranjera (dolarapi.com) ─────────────────────
 const CURRENCIES = [
@@ -3851,23 +3899,58 @@ function getExpenses(){ return JSON.parse(localStorage.getItem('nmclb_expenses')
 function saveExpenses(list){ saveAndSync('nmclb_expenses', list); }
 
 function renderExpenseList(){
-  const list = getExpenses();
   const fCat = document.getElementById('g-filter-cat')?.value || '';
   const fSrc = document.getElementById('g-filter-src')?.value || '';
-  let filtered = list;
+
+  let filtered = getExpenses();
   if(fCat) filtered = filtered.filter(e=>e.cat===fCat);
   if(fSrc) filtered = filtered.filter(e=>e.source===fSrc);
+  let rows = filtered.map(e=>({ date:e.date, html:renderMovRow(e) }));
+
+  // Los pagos/cobros de una cuenta compartida viven en nmclb_settlements, no en
+  // nmclb_expenses: NO son un gasto (el gasto original ya se contó), son una
+  // transferencia. Por eso no suman a "gastado este mes", pero sí tienen que
+  // verse acá — antes quedaban invisibles en el historial.
+  if(!fCat){
+    let sts = getSettlements();
+    if(fSrc) sts = sts.filter(x=>x.source===fSrc);
+    rows = rows.concat(sts.map(x=>({ date:x.date, html:renderSettlementRow(x) })));
+  }
+
+  rows.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
   const el = document.getElementById('g-list');
   if(!el) return;
 
-  if(!filtered.length){
+  if(!rows.length){
     el.innerHTML = '<div class="empty-state" style="border:none;">Sin movimientos registrados 🌱</div>';
     return;
   }
 
-  el.innerHTML = filtered.map(e=>renderMovRow(e)).join('');
+  el.innerHTML = rows.map(r=>r.html).join('');
   if(!valuesVisible) applyVisibility();
+}
+
+// Fila de pago/cobro de cuenta compartida (transferencia, no gasto)
+function renderSettlementRow(x){
+  const iPaid  = Number(x.amount) > 0;             // >0 = le pagué yo
+  const amount = Math.abs(Number(x.amount)||0);
+  const src    = typeof x.source === 'string' ? x.source : '';
+  let srcLabel = '💰 Movimiento';
+  if(src === 'cash')                  srcLabel = '💵 Efectivo';
+  else if(src.startsWith('digital:')) srcLabel = '📱 '+esc(src.slice(8));
+  else if(src.startsWith('fx:'))      srcLabel = '💱 '+esc(src.slice(3));
+  else if(src.startsWith('crypto:'))  srcLabel = '🪙 Cripto';
+
+  return `<div class="erow">
+    <div class="eicon cat-settle">🤝</div>
+    <div class="eleft">
+      <div class="edesc">${iPaid ? 'Pago a ' : 'Cobro de '}${esc(x.person)}</div>
+      <div class="emeta"><span class="esrc-tag">${srcLabel}</span><span class="esrc-tag">Saldo compartido</span><span>${fmtDate(x.date)}</span></div>
+    </div>
+    <div class="eamt val-sensitive ${iPaid?'':'pos'}">${iPaid?'-':'+'}$${fmt(amount)}</div>
+    <button class="edel" onclick="deleteSettlement(${Number(x.id)||0})" title="Eliminar">✕</button>
+  </div>`;
 }
 
 // Fila de movimiento reutilizable (historial y detalle de bolsillo)
@@ -6766,6 +6849,7 @@ function confirmSettle(person, iOwe){
   initWallet();
   renderSharedDetail();
   renderShared();
+  if(document.getElementById('s-gastos')?.classList.contains('active')) initGastos();
 
   if(detail?.kind === 'fx'){
     const ci = currencyInfo(detail.currency);
@@ -6799,6 +6883,7 @@ function deleteSettlement(id){
     initWallet();
     renderSharedDetail();
     renderShared();
+    if(document.getElementById('s-gastos')?.classList.contains('active')) initGastos();
     toast('Pago eliminado');
   });
 }
@@ -6914,10 +6999,10 @@ async function applyUpdate(){
 // ── ARRANQUE DE LA APP ───────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', ()=>{
   try{
-    const bioWrap = document.getElementById('bio-login-wrap');
-    if(bioWrap && localStorage.getItem('nmclb_bioEnabled')==='1'){
-      bioWrap.style.display='block';
-    }
+    // El banner "Entrar con huella" del login queda oculto a propósito: en un
+    // arranque en frío la huella no puede descifrar los datos (la clave se deriva
+    // de la contraseña y nunca se persiste), así que sólo agregaba un segundo
+    // pedido de huella que terminaba igual pidiendo la contraseña.
     bootApp();
   }catch(err){
     console.error('Error al iniciar:', err);
