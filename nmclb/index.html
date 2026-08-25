@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="37">
+<meta name="app-version" content="38">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -654,6 +654,12 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
         <button onclick="toggleVisibility()" style="background:var(--panel);border:1px solid var(--border);width:38px;height:38px;border-radius:11px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;" id="eye-btn-home">👁</button>
         <button onclick="openProfileModal()" style="width:38px;height:38px;border-radius:11px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;border:none;cursor:pointer;" id="home-avatar">U</button>
       </div>
+    </div>
+
+    <div id="sync-locked-banner" style="display:none;background:rgba(247,162,106,.12);border:1px solid rgba(247,162,106,.35);border-radius:13px;padding:12px 13px;margin-bottom:6px;">
+      <p style="font-size:12px;font-weight:800;color:var(--accent-soft);margin-bottom:4px;">☁️ Sincronización pausada</p>
+      <p style="font-size:11px;color:var(--text-dim);line-height:1.45;margin-bottom:9px;">Entraste con huella. Todo lo de este celular está completo, pero para sincronizar con la nube hace falta tu contraseña — de ahí sale la clave de cifrado.</p>
+      <button class="btn btn-sm" onclick="openSyncUnlockModal()" style="width:auto;padding:0 14px;background:var(--panel-strong);border:1px solid var(--border-strong);color:var(--text);">Ingresar contraseña</button>
     </div>
 
     <!-- Acciones principales -->
@@ -1703,10 +1709,9 @@ function skipBiometric(){ go('s-ready'); }
 async function loginWithBiometric(){
   const ok = await verifyBiometric();
   if(!ok){ toast('No se pudo verificar. Usá tu contraseña.'); return; }
-  // Salvaguarda: sin cryptoKey en memoria no se puede descifrar nada y entrar
-  // así fue el origen del incidente de datos cifrados en capas. Se pide contraseña.
-  if(!cryptoKey){ toast('Ingresá tu contraseña para desbloquear tus datos'); return; }
-  toast('✓ Verificado'); enterApp();
+  toast('✓ Verificado');
+  enterApp();
+  if(!cryptoKey) toast('Sincronización pausada — ingresá tu contraseña cuando quieras');
 }
 
 // ── Login con contraseña ────────────────────────────────────────────────
@@ -1794,16 +1799,24 @@ async function bootApp(){
     // Sesión viva en memoria (misma carga de página): entra directo.
     if((hasSession || currentUser) && cryptoKey){ initHome(); go('s-home'); return; }
 
-    // Arranque en frío: la clave de cifrado NO se persiste (vive sólo en memoria),
-    // así que sólo se reconstruye con la contraseña. Pedir la huella acá no sirve
-    // —no descifra nada— y era justamente lo que provocaba el doble pedido de huella
-    // (una en la pantalla de desbloqueo y otra en el banner del login).
+    // Arranque en frío con huella activa: la huella confirma identidad y entra.
+    // Los datos locales están completos (localStorage NO está cifrado en reposo;
+    // el cifrado se aplica al subir a la nube). Lo único que queda pausado es la
+    // sincronización, porque su clave se deriva de la contraseña y no se persiste.
+    // Un solo pedido de huella: ya no rebota a la pantalla de contraseña.
+    if(hasSession && bioOn){
+      const nameEl = document.getElementById('unlock-name');
+      if(nameEl) nameEl.textContent = localStorage.getItem('nmclb_name')||'';
+      go('s-unlock');
+      setTimeout(()=>{ unlockWithBio(); }, 500);
+      return;
+    }
+
     if(hasSession){
       toast('Ingresá tu contraseña para desbloquear tus datos');
       go('s-login');
       return;
     }
-    void bioOn;
 
     go('s-login');
   }catch(err){
@@ -1817,13 +1830,11 @@ async function unlockWithBio(){
   if(btn) btn.textContent = 'Verificando…';
   const ok = await verifyBiometric();
   if(btn) btn.textContent = 'Desbloquear con huella';
-  if(ok && cryptoKey){ appLocked = false; initHome(); go('s-home'); }
-  else if(ok && !cryptoKey){
-    appLocked = false;
-    toast('Ingresá tu contraseña para desbloquear tus datos');
-    go('s-login');
-  }
-  else toast('No se pudo verificar. Probá de nuevo.');
+  if(!ok){ toast('No se pudo verificar. Probá de nuevo.'); return; }
+  appLocked = false;
+  initHome();
+  go('s-home');
+  if(!cryptoKey) toast('Sincronización pausada — ingresá tu contraseña cuando quieras');
 }
 
 // Salida manual desde la pantalla de desbloqueo
@@ -1844,7 +1855,71 @@ function initHome(){
   document.getElementById('eye-btn-home').textContent = valuesVisible ? '👁' : '🙈';
 
   try{ renderShared(); }catch(e){}
+  refreshSyncLockedBanner();
+  updateSyncBadge();
   if(!valuesVisible) applyVisibilityWallet();
+}
+
+// Muestra el aviso sólo si hay cuenta en la nube pero no hay clave en memoria
+function refreshSyncLockedBanner(){
+  const el = document.getElementById('sync-locked-banner');
+  if(!el) return;
+  const hasCloudAccount = !!currentUser || !!localStorage.getItem('nmclb_uid');
+  el.style.display = (!cryptoKey && hasCloudAccount) ? 'block' : 'none';
+}
+
+// ── Reactivar la sincronización pidiendo la contraseña una sola vez ───────
+function openSyncUnlockModal(){
+  document.getElementById('settle-title').textContent = '☁️ Reactivar sincronización';
+  document.getElementById('settle-body').innerHTML = `
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:15px;line-height:1.5;">
+      Tu contraseña no se guarda en ningún lado: de ella se deriva la clave que cifra
+      lo que sube a la nube. Por eso hay que escribirla una vez por sesión.
+    </p>
+    <div class="field">
+      <label class="label">Contraseña</label>
+      <input class="input" type="password" id="su-pass" autocomplete="current-password">
+    </div>
+    <div class="err-msg" id="su-err">Contraseña incorrecta.</div>
+    <div class="stack" style="margin-top:4px;">
+      <button class="btn btn-green" id="su-btn" onclick="doUnlockSync()">Reactivar</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Ahora no</button>
+    </div>`;
+  document.getElementById('modal-settle').style.display='flex';
+  setTimeout(()=>document.getElementById('su-pass')?.focus(), 250);
+}
+
+async function doUnlockSync(){
+  const pass = document.getElementById('su-pass').value;
+  const err  = document.getElementById('su-err');
+  const btn  = document.getElementById('su-btn');
+  err.classList.remove('show');
+  if(!pass){ toast('Ingresá tu contraseña'); return; }
+  const uid = (currentUser && currentUser.uid) || localStorage.getItem('nmclb_uid');
+  if(!uid){ toast('No hay cuenta en la nube en este dispositivo'); return; }
+  btn.disabled = true; btn.textContent = 'Verificando…';
+  try{
+    await unlockEncryption(pass, uid);
+    const keyOk = await verifyKeyAgainstCanary(uid);
+    if(!keyOk){
+      cryptoKey = null;                       // clave equivocada: no dejarla activa
+      err.textContent = 'Esa contraseña no descifra tus datos.';
+      err.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Reactivar';
+      return;
+    }
+    closeModal('modal-settle');
+    await pullFromCloud();
+    listenToCloud();
+    listenToShared();
+    initHome();
+    toast('✓ Sincronización reactivada');
+  }catch(e){
+    cryptoKey = null;
+    btn.disabled = false; btn.textContent = 'Reactivar';
+    err.textContent = 'No se pudo verificar. Probá de nuevo.';
+    err.classList.add('show');
+  }
 }
 
 // ── PERFIL ────────────────────────────────────────────────────────────────
@@ -1913,7 +1988,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 37;
+const APP_VERSION = 38;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2347,7 +2422,6 @@ function closeAllModals(){
 
 function lockApp(){
   if(appLocked) return;
-  if(!cryptoKey) return;                                     // sin clave no hay sesión descifrada que proteger
   if(localStorage.getItem('nmclb_bioEnabled')!=='1') return; // sin huella no habría cómo desbloquear
   appLocked = true;
   closeAllModals();
@@ -4563,8 +4637,14 @@ async function pullFromCloud(){
 
 // Escucha cambios en tiempo real de mis propios datos (otro dispositivo)
 let cloudUnsub = null;
+let cloudListenerActive = false;
 function listenToCloud(){
   if(!currentUser) return;
+  // Sin clave NO se escucha: decryptPayload devolvería los 'enc1:' crudos y los
+  // escribiría en localStorage. Es exactamente el origen del cifrado en capas.
+  if(!cryptoKey) return;
+  if(cloudListenerActive) return;
+  cloudListenerActive = true;
   const r = FB.ref(FB.db, 'users/'+currentUser.uid+'/data');
   FB.onValue(r, async (snap)=>{
     if(!snap.exists() || syncing) return;
@@ -4617,6 +4697,11 @@ function updateSyncBadge(state){
   if(!el) return;
   if(!syncEnabled){ el.style.display='none'; return; }
   el.style.display='flex';
+  if(!cryptoKey){
+    el.querySelector('.sb-dot').style.background = 'var(--accent-soft)';
+    el.querySelector('.sb-text').textContent = 'Sincronización pausada';
+    return;
+  }
   const map = {
     up:   {t:'Guardando…', c:'var(--accent-soft)'},
     down: {t:'Sincronizando…', c:'var(--accent-soft)'},
@@ -5705,6 +5790,10 @@ const sharedKeys = {};   // { pairId: CryptoKey }
 
 async function getSharedKey(pairId){
   if(sharedKeys[pairId]) return sharedKeys[pairId];
+  // Sin clave personal, decryptText devuelve el texto cifrado tal cual (truthy):
+  // se derivaría una clave compartida equivocada y, peor, se podría publicar un
+  // secreto nuevo rompiendo el emparejamiento con la otra persona.
+  if(!cryptoKey) return null;
   try{
     // El secreto se guarda cifrado con la clave personal de cada uno
     const path = 'users/'+currentUser.uid+'/sharedSecrets/'+pairId;
@@ -5762,6 +5851,7 @@ async function decryptSharedMov(pairId, mov){
 let sharedListeners = [];
 function listenToShared(){
   if(!syncEnabled || !currentUser) return;
+  if(!cryptoKey) return;   // ver getSharedKey: sin clave se guardarían 'enc1:' crudos
   const conns = getConnections();
   conns.forEach(c=>{
     const r = FB.ref(FB.db, 'shared/'+c.pairId);
