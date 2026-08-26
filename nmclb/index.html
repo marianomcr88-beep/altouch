@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="38">
+<meta name="app-version" content="39">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -658,7 +658,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
 
     <div id="sync-locked-banner" style="display:none;background:rgba(247,162,106,.12);border:1px solid rgba(247,162,106,.35);border-radius:13px;padding:12px 13px;margin-bottom:6px;">
       <p style="font-size:12px;font-weight:800;color:var(--accent-soft);margin-bottom:4px;">☁️ Sincronización pausada</p>
-      <p style="font-size:11px;color:var(--text-dim);line-height:1.45;margin-bottom:9px;">Entraste con huella. Todo lo de este celular está completo, pero para sincronizar con la nube hace falta tu contraseña — de ahí sale la clave de cifrado.</p>
+      <p style="font-size:11px;color:var(--text-dim);line-height:1.45;margin-bottom:9px;">Falta enlazar tu huella con la clave de cifrado. Escribí la contraseña una vez y, de acá en adelante, entrás sólo con la huella y con la nube al día.</p>
       <button class="btn btn-sm" onclick="openSyncUnlockModal()" style="width:auto;padding:0 14px;background:var(--panel-strong);border:1px solid var(--border-strong);color:var(--text);">Ingresar contraseña</button>
     </div>
 
@@ -1776,6 +1776,8 @@ function enterApp(){
   initHome();
   go('s-home');
   if(syncEnabled){ pushToCloud(); listenToShared(); }
+  // Si hay huella activa y clave en memoria, dejarla lista para el próximo arranque
+  if(cryptoKey) setTimeout(()=>{ armBioKey().then(v=>{ if(v){ refreshSyncLockedBanner(); toast('✓ Listo: la próxima entrás sólo con huella'); } }); }, 900);
 }
 
 // ── Arranque de la app ────────────────────────────────────────────────────
@@ -1832,9 +1834,11 @@ async function unlockWithBio(){
   if(btn) btn.textContent = 'Desbloquear con huella';
   if(!ok){ toast('No se pudo verificar. Probá de nuevo.'); return; }
   appLocked = false;
+  if(!cryptoKey) await restoreKeyFromBio();   // clave envuelta con el secreto de la huella
   initHome();
   go('s-home');
-  if(!cryptoKey) toast('Sincronización pausada — ingresá tu contraseña cuando quieras');
+  if(cryptoKey) resumeSyncWithKey();
+  else if(!localStorage.getItem(BIO_WRAP_LS)) toast('Sincronización pausada — ingresá tu contraseña una vez');
 }
 
 // Salida manual desde la pantalla de desbloqueo
@@ -1914,6 +1918,9 @@ async function doUnlockSync(){
     listenToShared();
     initHome();
     toast('✓ Sincronización reactivada');
+    const armed = await armBioKey();
+    refreshSyncLockedBanner();
+    if(armed) toast('✓ Listo: la próxima entrás sólo con huella');
   }catch(e){
     cryptoKey = null;
     btn.disabled = false; btn.textContent = 'Reactivar';
@@ -1961,6 +1968,7 @@ async function toggleBiometricSetting(){
   if(bioOn){
     localStorage.removeItem('nmclb_bioEnabled');
     localStorage.removeItem('nmclb_credId');
+    clearBioWrappedKey();
     toast('Huella desactivada');
     openProfileModal();
   } else {
@@ -1980,6 +1988,10 @@ function logout(){
       try{ if(fbReady) await FB.signOutFn(FB.auth); }catch(e){}
       localStorage.removeItem('nmclb_session');
       localStorage.removeItem('nmclb_uid');
+      clearBioWrappedKey();
+      cryptoKey = null; encryptionReady = false;
+      sharedListenerPairs.clear();
+      cloudListenerActive = false;
       currentUser = null; syncEnabled = false;
       go('s-welcome');
       toast('Sesión cerrada');
@@ -1988,7 +2000,7 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 38;
+const APP_VERSION = 39;
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2305,6 +2317,7 @@ async function recoverWithPhrase(){
     // Si puso una contraseña nueva, recifrar todo con ella
     if(newPass && newPass.length >= 8){
       await unlockEncryption(newPass, currentUser.uid);
+      clearBioWrappedKey();     // la clave cambió: la envoltura vieja ya no sirve
       await FB.remove(FB.ref(FB.db,'users/'+currentUser.uid+'/canary'));
       await verifyKeyAgainstCanary(currentUser.uid);
       const newWrapped = await encryptText(newPass, phraseKey);
@@ -2366,6 +2379,7 @@ async function registerBiometric(){
         pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
         authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required', residentKey:'preferred' },
         timeout:60000,
+        extensions:{ prf:{} },   // habilita derivar un secreto desde el autenticador
       }
     });
     const idB64 = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
@@ -2387,16 +2401,122 @@ async function verifyBiometric(){
   const idB64 = localStorage.getItem('nmclb_credId');
   try{
     const challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
-    const opts = { challenge, userVerification:'required', timeout:60000 };
+    const opts = {
+      challenge, userVerification:'required', timeout:60000,
+      extensions:{ prf:{ eval:{ first: PRF_SALT } } }
+    };
     if(idB64){
       const raw = Uint8Array.from(atob(idB64), c=>c.charCodeAt(0));
       opts.allowCredentials = [{ id:raw, type:'public-key', transports:['internal'] }];
     }
     bioPromptOpen = true;
-    await navigator.credentials.get({ publicKey: opts });
+    lastPrfSecret = null;
+    const assertion = await navigator.credentials.get({ publicKey: opts });
+    try{
+      const ext = assertion.getClientExtensionResults();
+      const first = ext && ext.prf && ext.prf.results && ext.prf.results.first;
+      if(first) lastPrfSecret = new Uint8Array(first);
+    }catch(e){ lastPrfSecret = null; }
     return true;
   }catch(e){ return false; }
   finally{ setTimeout(()=>{ bioPromptOpen = false; }, 1000); }
+}
+
+// ── Clave de cifrado protegida por la huella (extensión PRF de WebAuthn) ──
+// El autenticador del celular deriva un secreto de 32 bytes que sólo entrega
+// después de verificar la huella. Con ese secreto envolvemos la clave AES y
+// guardamos SÓLO el resultado cifrado. La clave en claro sigue sin persistirse:
+// sin huella, lo guardado es un bloque inútil.
+const PRF_SALT     = new TextEncoder().encode('nmclb-bio-wrap-v1');
+const BIO_WRAP_LS  = 'nmclb_bioWrappedKey';
+const BIO_WRAP_UID = 'nmclb_bioWrapUid';
+const BIO_NO_PRF   = 'nmclb_bioPrfUnsupported';
+let lastPrfSecret  = null;   // sólo en memoria, se descarta apenas se usa
+
+function currentUid(){
+  return (currentUser && currentUser.uid) || localStorage.getItem('nmclb_uid') || '';
+}
+
+async function keyFromPrf(prfBytes){
+  const base = await crypto.subtle.importKey('raw', prfBytes, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'HKDF', hash:'SHA-256',
+      salt: new TextEncoder().encode('nmclb-bio-salt'),
+      info: new TextEncoder().encode('nmclb-wrap') },
+    base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+}
+
+function clearBioWrappedKey(){
+  localStorage.removeItem(BIO_WRAP_LS);
+  localStorage.removeItem(BIO_WRAP_UID);
+}
+
+// Envuelve la clave actual. Requiere tener cryptoKey en memoria (o sea, recién
+// después de entrar con contraseña). Si la credencial es vieja y no soporta PRF,
+// vuelve a registrar la huella una sola vez.
+async function armBioKey(){
+  if(!cryptoKey) return false;
+  if(localStorage.getItem('nmclb_bioEnabled') !== '1') return false;
+  const uid = currentUid();
+  if(!uid) return false;
+  if(localStorage.getItem(BIO_WRAP_LS) && localStorage.getItem(BIO_WRAP_UID) === uid) return true;
+
+  toast('Confirmá con la huella para no volver a escribir la contraseña');
+  let ok = await verifyBiometric();
+  if(ok && !lastPrfSecret){
+    // Credencial creada antes de PRF: se registra de nuevo, una única vez
+    const re = await registerBiometric();
+    if(re) ok = await verifyBiometric();
+  }
+  if(!ok || !lastPrfSecret){
+    localStorage.setItem(BIO_NO_PRF, '1');
+    lastPrfSecret = null;
+    return false;
+  }
+  try{
+    const raw     = await crypto.subtle.exportKey('raw', cryptoKey);
+    const wrapKey = await keyFromPrf(lastPrfSecret);
+    const iv      = crypto.getRandomValues(new Uint8Array(12));
+    const buf     = await crypto.subtle.encrypt({name:'AES-GCM', iv}, wrapKey, raw);
+    const comb    = new Uint8Array(12 + buf.byteLength);
+    comb.set(iv, 0); comb.set(new Uint8Array(buf), 12);
+    localStorage.setItem(BIO_WRAP_LS, btoa(String.fromCharCode(...comb)));
+    localStorage.setItem(BIO_WRAP_UID, uid);
+    localStorage.removeItem(BIO_NO_PRF);
+    return true;
+  }catch(e){ return false; }
+  finally{ lastPrfSecret = null; }
+}
+
+// Recupera la clave usando el secreto PRF de la verificación recién hecha
+async function restoreKeyFromBio(){
+  const wrapped = localStorage.getItem(BIO_WRAP_LS);
+  const uid     = currentUid();
+  if(!wrapped || !lastPrfSecret || !uid) { lastPrfSecret = null; return false; }
+  if(localStorage.getItem(BIO_WRAP_UID) !== uid){ lastPrfSecret = null; return false; }
+  try{
+    const wrapKey = await keyFromPrf(lastPrfSecret);
+    const raw  = Uint8Array.from(atob(wrapped), c=>c.charCodeAt(0));
+    const iv   = raw.slice(0, 12);
+    const data = raw.slice(12);
+    const keyRaw = await crypto.subtle.decrypt({name:'AES-GCM', iv}, wrapKey, data);
+    cryptoKey = await crypto.subtle.importKey('raw', keyRaw, {name:'AES-GCM'}, true, ['encrypt','decrypt']);
+    encryptionReady = true;
+    return true;
+  }catch(e){ return false; }
+  finally{ lastPrfSecret = null; }
+}
+
+// Arranca la sincronización una vez que hay clave disponible
+async function resumeSyncWithKey(){
+  if(!cryptoKey || !syncEnabled || !currentUser) return;
+  try{
+    await pullFromCloud();
+    listenToCloud();
+    listenToShared();
+    initHome();
+  }catch(e){}
 }
 
 // ── Auto-bloqueo al volver de segundo plano ──────────────────────────────
@@ -4208,7 +4328,9 @@ function exportExpensesCSV(){
 //  Los datos se cifran en el dispositivo con AES-256-GCM antes de subirse.
 //  La clave se deriva de la contraseña con PBKDF2 y NUNCA sale del celular.
 // ══════════════════════════════════════════════════════════════════════════
-let cryptoKey = null;        // CryptoKey activa en memoria (nunca se persiste)
+// En claro vive sólo en memoria. Puede quedar guardada ENVUELTA con el secreto
+// PRF del autenticador (ver armBioKey): sin la huella, eso guardado es inservible.
+let cryptoKey = null;
 let encryptionReady = false;
 
 const PBKDF2_ROUNDS = 200000;
@@ -4234,7 +4356,7 @@ async function deriveKey(secret, saltStr){
     { name:'PBKDF2', salt: enc.encode(saltStr), iterations: PBKDF2_ROUNDS, hash:'SHA-256' },
     baseKey,
     { name:'AES-GCM', length:256 },
-    false,
+    true,                       // exportable: hace falta para envolverla con la huella
     ['encrypt','decrypt']
   );
 }
@@ -5849,11 +5971,15 @@ async function decryptSharedMov(pairId, mov){
 
 // Escuchar los gastos compartidos de todas mis conexiones
 let sharedListeners = [];
+const sharedListenerPairs = new Set();   // pairIds que ya tienen escuchador
 function listenToShared(){
   if(!syncEnabled || !currentUser) return;
   if(!cryptoKey) return;   // ver getSharedKey: sin clave se guardarían 'enc1:' crudos
   const conns = getConnections();
   conns.forEach(c=>{
+    // No duplicar: se llama varias veces (al reanudar, al sumar una conexión…)
+    if(sharedListenerPairs.has(c.pairId)) return;
+    sharedListenerPairs.add(c.pairId);
     const r = FB.ref(FB.db, 'shared/'+c.pairId);
     FB.onValue(r, async (snap)=>{
       const data = snap.exists() ? snap.val() : {};
