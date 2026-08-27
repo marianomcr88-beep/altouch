@@ -1,6 +1,6 @@
 // ============================================================================
 // Service Worker — turno cercano · altouch
-// Versión 1.2.0
+// Versión 1.4.0
 //
 // Al subir de versión hay que tocar los 3 lugares a la vez:
 //   1. <meta name="app-version"> en index.html
@@ -9,12 +9,13 @@
 // Si no, el navegador sigue sirviendo la versión vieja desde el cache.
 // ============================================================================
 
-const CACHE_NAME = "turnocercano-v1.2.0";
+const CACHE_NAME = "turnocercano-v1.4.0";
 const PREFIJO = "turnocercano-";
 
 // Nombres de cache de versiones anteriores que no arrancan con el prefijo
 // actual. Sin esto quedan huérfanos para siempre, ocupando espacio.
 const CACHES_VIEJOS = ["turno-cercano-v2", "turno-cercano-v1"];
+// (turnocercano-v1.2.0 y anteriores ya los cubre el prefijo)
 
 // Rutas relativas: la app vive en altouch.com.ar/turnocercano/, no en la raíz.
 const ASSETS = [
@@ -23,6 +24,8 @@ const ASSETS = [
   "./manifest.json",
   "./farmacias-icon-192.png",
   "./farmacias-icon-512.png",
+  "./farmacias-maskable-512.png",
+  "./farmacias-favicon-64.png",
   "./farmacias-apple-touch.png",
 ];
 

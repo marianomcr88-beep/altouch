@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>turno cercano · altouch</title>
-<meta name="app-version" content="1.3.0">
+<meta name="app-version" content="1.4.0">
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0C1A24">
@@ -95,6 +95,16 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
   text-align:center;font-family:var(--mono);font-size:11.5px;
   color:var(--dim);margin:-8px 0 12px;letter-spacing:.02em;
 }
+
+/* --- Botón instalar --- */
+.btn-instalar{
+  display:none;width:100%;padding:13px 20px;margin-top:18px;
+  align-items:center;justify-content:center;gap:8px;
+  background:transparent;color:var(--dim);
+  font-family:var(--font);font-weight:700;font-size:14px;
+  border:1px solid var(--border-2);border-radius:12px;cursor:pointer;
+}
+.btn-instalar:active{transform:scale(.99);}
 
 /* --- Atribución de fuente --- */
 .fuente{
@@ -262,6 +272,9 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
     <div class="list-body" id="list"></div>
   </details>
 
+  <!-- ====== INSTALAR ====== -->
+  <button class="btn-instalar" id="install-btn" type="button">📲 Instalar en mi celular</button>
+
   <!-- ====== ATRIBUCIÓN DE FUENTE ====== -->
   <div class="fuente">
     <p style="margin:0 0 6px;">
@@ -294,7 +307,8 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
 // ============================================================================
 // Config
 // ============================================================================
-const APP_VERSION = '1.3.0';
+// Derivada del meta para no tener el número repetido en dos lugares.
+const APP_VERSION = document.querySelector('meta[name="app-version"]')?.content || '0';
 const API_URL = 'https://turno-cercano-api.mariano-mcr-88.workers.dev/';
 
 const SF_CENTER = [-31.6333, -60.7000];
@@ -594,6 +608,98 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 initView();
+
+// ============================================================================
+// Instalación PWA
+//
+// Android y Chrome de escritorio avisan con `beforeinstallprompt`. Safari no
+// implementa ese evento y no piensa hacerlo: en iPhone la instalación es
+// siempre manual desde Compartir. Por eso ahí el botón se muestra a mano y lo
+// único que hace es explicar los pasos.
+// ============================================================================
+let deferredPrompt = null;
+
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad moderno
+const IS_SAFARI = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent);
+const IS_STANDALONE = window.navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+const installBtn = document.getElementById('install-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if(installBtn && !IS_STANDALONE) installBtn.style.display = 'flex';
+});
+
+// iOS nunca dispara el evento: se muestra igual.
+if(IS_IOS && !IS_STANDALONE && installBtn) installBtn.style.display = 'flex';
+
+function installPWA(){
+  if(IS_IOS){
+    if(!IS_SAFARI){
+      // El caso más común de todos: el link llegó por WhatsApp y se abrió en
+      // el navegador interno, donde no existe "Agregar a pantalla de inicio".
+      showInstallHelp('Abrila en Safari',
+        'En iPhone solo se puede instalar desde Safari.<br><br>' +
+        '1. Tocá el menú (⋯) de este navegador<br>' +
+        '2. Elegí <b>"Abrir en Safari"</b><br>' +
+        '3. Ahí volvé a tocar "Instalar en mi celular"');
+      return;
+    }
+    showInstallHelp('Instalar en tu iPhone',
+      '1. Tocá el botón <b>Compartir</b> ⬆️ (abajo, en el centro de Safari)<br>' +
+      '2. Bajá en la lista y elegí <b>"Agregar a pantalla de inicio"</b><br>' +
+      '3. Tocá <b>"Agregar"</b> arriba a la derecha<br><br>' +
+      'Listo: turno cercano te queda como una app más en tu pantalla.');
+    return;
+  }
+
+  if(!deferredPrompt){
+    showInstallHelp('Instalar turno cercano',
+      'Abrí el menú del navegador (⋮) y elegí <b>"Instalar app"</b> ' +
+      'o <b>"Agregar a pantalla de inicio"</b>.');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    if(installBtn) installBtn.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  if(installBtn) installBtn.style.display = 'none';
+});
+
+function showInstallHelp(titulo, htmlPasos){
+  const previo = document.getElementById('install-help');
+  if(previo) previo.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'install-help';
+  ov.style.cssText =
+    'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);' +
+    'display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+  ov.innerHTML =
+    '<div style="background:#1A2B3C;color:#fff;border:1px solid rgba(255,255,255,.12);' +
+    'border-radius:18px;padding:20px;max-width:420px;width:100%;' +
+    'box-shadow:0 12px 40px rgba(0,0,0,.5);font-size:15px;line-height:1.6;' +
+    'font-family:\'M PLUS Rounded 1c\',system-ui,sans-serif;">' +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:12px;">📲 ' + titulo + '</div>' +
+      '<div style="opacity:.92;">' + htmlPasos + '</div>' +
+      '<button id="install-help-close" style="margin-top:18px;width:100%;padding:12px;' +
+      'border:none;border-radius:12px;background:#4CAF50;color:#06222A;font-family:inherit;' +
+      'font-weight:700;font-size:15px;cursor:pointer;">Entendido</button>' +
+    '</div>';
+  ov.addEventListener('click', (e) => { if(e.target === ov) ov.remove(); });
+  ov.querySelector('#install-help-close').addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+}
+
+if(installBtn) installBtn.addEventListener('click', installPWA);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
