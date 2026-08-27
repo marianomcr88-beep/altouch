@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>turno cercano · altouch</title>
-<meta name="app-version" content="1.2.0">
+<meta name="app-version" content="1.3.0">
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0C1A24">
@@ -12,7 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="turno cercano">
 <link rel="apple-touch-icon" href="farmacias-apple-touch.png">
-<link rel="icon" href="farmacias-icon-192.png">
+<link rel="icon" type="image/png" sizes="64x64" href="farmacias-favicon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="farmacias-icon-192.png">
 
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -88,6 +89,21 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
 .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-top:12px;justify-content:center;}
 .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border-2);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:0 0 auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
+
+/* --- Línea de período del turno --- */
+.periodo-linea{
+  text-align:center;font-family:var(--mono);font-size:11.5px;
+  color:var(--dim);margin:-8px 0 12px;letter-spacing:.02em;
+}
+
+/* --- Atribución de fuente --- */
+.fuente{
+  border-top:1px solid var(--border);
+  margin-top:22px;padding-top:16px;
+  font-size:11.5px;line-height:1.6;color:var(--faint);text-align:center;
+}
+.fuente a{color:var(--dim);text-decoration:underline;}
+.fuente strong{color:var(--dim);font-weight:700;}
 
 /* --- Refresh tag --- */
 .refresh-tag{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);margin:0 0 14px 2px;}
@@ -193,6 +209,8 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
 
   <h1 class="display" style="text-align:center;margin:0 0 16px;">turno cercano</h1>
 
+  <p class="periodo-linea" id="periodoLinea" style="display:none;"></p>
+
   <div class="refresh-tag" id="refreshTag"><span class="dot"></span><span id="refreshTagText">Cargando datos…</span></div>
 
   <!-- ====== PANTALLA: HORARIO NORMAL ====== -->
@@ -244,6 +262,20 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
     <div class="list-body" id="list"></div>
   </details>
 
+  <!-- ====== ATRIBUCIÓN DE FUENTE ====== -->
+  <div class="fuente">
+    <p style="margin:0 0 6px;">
+      Los turnos los define el <strong>Colegio de Farmacéuticos de la Provincia de Santa Fe,
+      1.ª Circunscripción</strong> y los publica
+      <a href="https://servicios.ellitoral.com/seccion/farmacias/" target="_blank" rel="noopener">El Litoral</a>.
+    </p>
+    <p style="margin:0;">
+      turno cercano solo los muestra ordenados por cercanía; no es una fuente oficial.
+      Ante cualquier duda, confirmá en
+      <a href="https://servicios.ellitoral.com/seccion/farmacias/" target="_blank" rel="noopener">la fuente</a>.
+    </p>
+  </div>
+
   <!-- ====== PIE FIJO ====== -->
   <div class="pie">
     <div class="pie-logo">
@@ -262,8 +294,8 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
 // ============================================================================
 // Config
 // ============================================================================
-const APP_VERSION = '1.2.0';
-const API_URL = 'https://farmaciaenturno.netlify.app/.netlify/functions/farmacias';
+const APP_VERSION = '1.3.0';
+const API_URL = 'https://turno-cercano-api.mariano-mcr-88.workers.dev/';
 
 const SF_CENTER = [-31.6333, -60.7000];
 const REFRESH_MS = 10 * 60 * 1000;
@@ -305,6 +337,7 @@ function hideError(){ document.getElementById('errorBox').style.display = 'none'
 let CURRENT_PHARMACIES = [];
 let UNLOCATED = [];
 let DATOS_OK = false;
+let ULTIMA_CARGA = 0;
 
 async function loadPharmacies(isBackground){
   const tag = document.getElementById('refreshTag');
@@ -312,7 +345,9 @@ async function loadPharmacies(isBackground){
   const locateBtn = document.getElementById('locateBtn');
   const manualBtn = document.getElementById('manualBtn');
   try{
-    const resp = await fetch(API_URL, {cache:'no-store'});
+    // Sin no-store: la respuesta trae Cache-Control de 4 minutos y conviene
+    // aprovecharlo. Evita pegarle a la API en cada carga de página.
+    const resp = await fetch(API_URL);
     const data = await resp.json();
     if(!(data.ok && data.pharmacies && data.pharmacies.length)) throw new Error('sin datos');
 
@@ -324,9 +359,14 @@ async function loadPharmacies(isBackground){
     manualBtn.style.display = '';
     hideError();
 
+    ULTIMA_CARGA = Date.now();
     const hora = new Date(data.updatedAt).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
     tagText.textContent = 'Turno actualizado · ' + hora +
       (data.missingCount ? ' · ' + data.missingCount + ' sin ubicar' : '');
+
+    const per = document.getElementById('periodoLinea');
+    if(data.periodo){ per.textContent = 'Turno ' + data.periodo.toLowerCase(); per.style.display = 'block'; }
+    else { per.style.display = 'none'; }
   }catch(e){
     tag.classList.remove('live');
     if(DATOS_OK){
@@ -541,7 +581,18 @@ document.getElementById('showTurnoAnyway').addEventListener('click', () => {
 });
 
 loadPharmacies(false);
-setInterval(() => loadPharmacies(true), REFRESH_MS);
+
+// Solo se refresca con la pestaña a la vista: una pestaña olvidada en segundo
+// plano no tiene por qué seguir consultando la API para siempre.
+setInterval(() => {
+  if(document.visibilityState === 'visible') loadPharmacies(true);
+}, REFRESH_MS);
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && Date.now() - ULTIMA_CARGA > REFRESH_MS){
+    loadPharmacies(true);
+  }
+});
 initView();
 
 if('serviceWorker' in navigator){
