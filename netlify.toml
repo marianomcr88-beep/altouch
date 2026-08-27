@@ -1,0 +1,3 @@
+[functions]
+  directory = "turnocercano/netlify/functions"
+  node_bundler = "esbuild"
