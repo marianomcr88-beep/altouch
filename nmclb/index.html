@@ -5803,6 +5803,13 @@ function toggleVisibility(){
 
 // ── Instalación PWA ──────────────────────────────────────────────────────
 let deferredPrompt = null;
+
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IS_SAFARI = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent);
+const IS_STANDALONE = window.navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredPrompt = e;
@@ -5810,9 +5817,45 @@ window.addEventListener('beforeinstallprompt', (e)=>{
   if(btn) btn.style.display = 'flex';
 });
 
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(IS_IOS && !IS_STANDALONE){
+    const btn = document.getElementById('install-btn');
+    if(btn) btn.style.display = 'flex';
+  }
+});
+
 function installPWA(){
+  if(IS_IOS){
+    if(IS_STANDALONE){
+      toast('Ya tenés NMCLB instalada 🎉');
+      return;
+    }
+    if(!IS_SAFARI){
+      showInstallHelp(
+        'Abrila en Safari',
+        'En iPhone solo se puede instalar desde Safari.<br><br>' +
+        '1. Tocá el menú (⋯) de este navegador<br>' +
+        '2. Elegí <b>"Abrir en Safari"</b><br>' +
+        '3. Ahí volvé a tocar "Instalar en mi celular"'
+      );
+      return;
+    }
+    showInstallHelp(
+      'Instalar en tu iPhone',
+      '1. Tocá el botón <b>Compartir</b> ⬆️ (abajo, en el centro de Safari)<br>' +
+      '2. Bajá en la lista y elegí <b>"Agregar a pantalla de inicio"</b><br>' +
+      '3. Tocá <b>"Agregar"</b> arriba a la derecha<br><br>' +
+      'Listo: NMCLB te queda como una app más en tu pantalla.'
+    );
+    return;
+  }
+
   if(!deferredPrompt){
-    toast('Usá el menú del navegador → "Instalar app"');
+    showInstallHelp(
+      'Instalar NMCLB',
+      'Abrí el menú del navegador (⋮) y elegí <b>"Instalar app"</b> ' +
+      'o <b>"Agregar a pantalla de inicio"</b>.'
+    );
     return;
   }
   deferredPrompt.prompt();
@@ -5821,6 +5864,38 @@ function installPWA(){
     const btn = document.getElementById('install-btn');
     if(btn) btn.style.display='none';
   });
+}
+
+window.addEventListener('appinstalled', ()=>{
+  deferredPrompt = null;
+  const btn = document.getElementById('install-btn');
+  if(btn) btn.style.display = 'none';
+  try{ toast('¡NMCLB instalada!'); }catch(e){}
+});
+
+function showInstallHelp(titulo, htmlPasos){
+  document.getElementById('install-help')?.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'install-help';
+  ov.style.cssText =
+    'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);' +
+    'display:flex;align-items:flex-end;justify-content:center;padding:16px;';
+
+  ov.innerHTML =
+    '<div style="background:#12242F;color:#EAF2F6;border:1px solid rgba(255,255,255,.12);' +
+    'border-radius:18px;padding:20px;max-width:420px;width:100%;' +
+    'box-shadow:0 12px 40px rgba(0,0,0,.5);font-size:15px;line-height:1.6;">' +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:12px;">📲 ' + titulo + '</div>' +
+      '<div style="opacity:.92;">' + htmlPasos + '</div>' +
+      '<button id="install-help-close" style="margin-top:18px;width:100%;padding:12px;' +
+      'border:none;border-radius:12px;background:#3FBF8F;color:#06222A;' +
+      'font-weight:700;font-size:15px;cursor:pointer;">Entendido</button>' +
+    '</div>';
+
+  ov.addEventListener('click', (e)=>{ if(e.target === ov) ov.remove(); });
+  ov.querySelector('#install-help-close').addEventListener('click', ()=> ov.remove());
+  document.body.appendChild(ov);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
