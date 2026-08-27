@@ -9,11 +9,19 @@ const ASSETS = [
   './icon-maskable.png'
 ];
 
-// Instalar: cachear los archivos base
+// Instalar: cachear los archivos base.
+// cache:'reload' obliga a pedirlos al servidor y no al cache HTTP del navegador,
+// que es lo que hacia que la version nueva no llegara nunca.
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(ASSETS).catch(()=>{}))
+      .then(c => Promise.all(
+        ASSETS.map(u =>
+          fetch(new Request(u, { cache: 'reload' }))
+            .then(res => res.ok ? c.put(u, res) : null)
+            .catch(() => null)
+        )
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -27,23 +35,43 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch: red primero para APIs, cache primero para el resto
 self.addEventListener('fetch', (e) => {
-  const url = e.request.url;
+  const req = e.request;
+  const url = req.url;
 
-  // Las llamadas a la API de cotización siempre van a la red
+  if (req.method !== 'GET') return;
+
+  // Las llamadas a la API de cotizacion siempre van a la red
   if (url.includes('dolarapi.com') || url.includes('coingecko.com') || url.includes('firebaseio.com')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    e.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }
 
-  // Resto: cache primero, red como respaldo
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      return cached || fetch(e.request).then(res => {
-        if (e.request.method === 'GET' && res.ok) {
+  // El HTML: red primero, cache como respaldo.
+  // Asi una version nueva se ve apenas se sube, sin esperar a que expire nada.
+  const esHTML = req.mode === 'navigate' ||
+    (req.headers.get('accept') || '').includes('text/html');
+
+  if (esHTML) {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
           const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
+          caches.open(CACHE).then(c => c.put('./index.html', copy));
+          return res;
+        })
+        .catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Iconos, manifest y demas: cache primero, red como respaldo
+  e.respondWith(
+    caches.match(req).then(cached => {
+      return cached || fetch(req).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy));
         }
         return res;
       });
