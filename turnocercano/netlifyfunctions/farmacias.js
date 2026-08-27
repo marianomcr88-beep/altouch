@@ -30,8 +30,10 @@ const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
 const AR_OFFSET_H = 3;
 
 // Presupuestos para no pasarse del timeout de Netlify (10 s por defecto).
-const MAX_GEOCODE_POR_CORRIDA = 6;
-const PRESUPUESTO_GEOCODE_MS = 6000;
+const MAX_GEOCODE_POR_CORRIDA = 4;
+const TIMEOUT_FUENTE_MS = 5000;   // fetch a El Litoral
+const TIMEOUT_GEOCODE_MS = 2500;  // cada request a Nominatim
+const DEADLINE_TOTAL_MS = 7500;   // el handler nunca pasa de acá (Netlify corta a 10 s)
 const DELAY_NOMINATIM_MS = 1100; // política de uso: máx. 1 request/segundo
 const MEMO_TTL_MS = 4 * 60 * 1000;
 
@@ -293,6 +295,27 @@ function extraerFarmacias(bloque) {
 // ---------------------------------------------------------------------------
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// El Litoral sirve la página en ISO-8859-1. Buffer.toString("latin1") es
+// nativo de Node y no depende de cómo esté compilado ICU; TextDecoder con el
+// label "iso-8859-1" puede tirar RangeError en builds con ICU reducido, que
+// es justo el tipo de error que hace fallar la función entera en producción.
+function decodificarLatin1(arrayBuffer) {
+  if (typeof Buffer !== "undefined") return Buffer.from(arrayBuffer).toString("latin1");
+  return new TextDecoder("iso-8859-1").decode(arrayBuffer);
+}
+
+// Ningún fetch puede quedarse colgado: si se cuelga, la función se pasa del
+// timeout de Netlify y el navegador recibe un 502 en vez de un JSON.
+async function fetchConTimeout(url, opciones, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opciones, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 function dentroDeSantaFe(lat, lon) {
   return (
     lat >= BBOX.latMin && lat <= BBOX.latMax &&
@@ -305,9 +328,9 @@ async function consultarNominatim(q) {
     "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1" +
     "&countrycodes=ar&bounded=1&viewbox=" + VIEWBOX +
     "&q=" + encodeURIComponent(q);
-  const r = await fetch(url, {
+  const r = await fetchConTimeout(url, {
     headers: { "User-Agent": UA, "Accept-Language": "es", Accept: "application/json" },
-  });
+  }, TIMEOUT_GEOCODE_MS);
   if (!r.ok) return null;
   const j = await r.json();
   if (!Array.isArray(j) || !j.length) return null;
@@ -318,7 +341,7 @@ async function consultarNominatim(q) {
   return [lat, lon];
 }
 
-async function geocodificar(name, addr) {
+async function geocodificar(name, addr, deadline) {
   // Primero con el nombre (por si la farmacia está mapeada como POI),
   // después solo por dirección, que es más confiable para la calle.
   const intentos = [
@@ -326,11 +349,14 @@ async function geocodificar(name, addr) {
     `${addr}, Santa Fe, Santa Fe, Argentina`,
   ];
   for (let i = 0; i < intentos.length; i++) {
+    if (Date.now() > deadline) return null;
     try {
       const r = await consultarNominatim(intentos[i]);
       if (r) return r;
-    } catch (e) { /* se sigue con el próximo intento */ }
-    if (i < intentos.length - 1) await dormir(DELAY_NOMINATIM_MS);
+    } catch (e) { /* timeout o error de red: se sigue */ }
+    if (i < intentos.length - 1 && Date.now() + DELAY_NOMINATIM_MS < deadline) {
+      await dormir(DELAY_NOMINATIM_MS);
+    }
   }
   return null;
 }
@@ -358,14 +384,14 @@ exports.handler = async function () {
   }
 
   try {
-    const resp = await fetch(SOURCE_URL, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; TurnoCercanoBot/1.1)" },
-    });
+    const resp = await fetchConTimeout(SOURCE_URL, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; TurnoCercanoBot/1.2)" },
+    }, TIMEOUT_FUENTE_MS);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
 
     // FIX CLAVE: la página es ISO-8859-1, no UTF-8.
     const buf = await resp.arrayBuffer();
-    const html = new TextDecoder("iso-8859-1").decode(buf);
+    const html = decodificarLatin1(buf);
 
     const ahora = Date.now();
     const bloque = elegirBloqueTurno(html, ahora);
@@ -384,21 +410,26 @@ exports.handler = async function () {
       }
     }
 
-    // 2) Geocodificar lo que falte, con tope de tiempo y de cantidad.
+    // 2) Geocodificar lo que falte. Todo esto es "mejor esfuerzo": si falla o
+    //    se acaba el tiempo, la respuesta sale igual con lo que ya tenemos.
+    //    Nunca puede tumbar la función.
+    const deadline = t0 + DEADLINE_TOTAL_MS;
     let geocodificadas = 0;
-    for (const f of pendientes) {
-      if (geocodificadas >= MAX_GEOCODE_POR_CORRIDA) break;
-      if (Date.now() - t0 > PRESUPUESTO_GEOCODE_MS) break;
-      if (geocodificadas > 0) await dormir(DELAY_NOMINATIM_MS);
-      const c = await geocodificar(f.name, f.addr);
-      geocodificadas++;
-      if (c) {
-        f.lat = c[0];
-        f.lon = c[1];
-        f.fuenteCoord = "geocoding";
-        COORDS_RUNTIME[f.key] = c; // queda cacheada para las próximas corridas
+    try {
+      for (const f of pendientes) {
+        if (geocodificadas >= MAX_GEOCODE_POR_CORRIDA) break;
+        if (Date.now() + TIMEOUT_GEOCODE_MS > deadline) break;
+        if (geocodificadas > 0) await dormir(DELAY_NOMINATIM_MS);
+        const c = await geocodificar(f.name, f.addr, deadline);
+        geocodificadas++;
+        if (c) {
+          f.lat = c[0];
+          f.lon = c[1];
+          f.fuenteCoord = "geocoding";
+          COORDS_RUNTIME[f.key] = c; // queda cacheada para las próximas corridas
+        }
       }
-    }
+    } catch (e) { /* el geocoding es opcional: se ignora y se sigue */ }
 
     const limpiar = ({ key, fuenteCoord, ...resto }) => resto;
     const ubicadas = farmacias.filter((f) => f.lat !== null).map(limpiar);
@@ -414,6 +445,8 @@ exports.handler = async function () {
       count: ubicadas.length,      // las que se pueden ubicar en el mapa
       missingCount: sinUbicar.length,
       geocodedThisRun: geocodificadas,
+      ms: Date.now() - t0,
+      version: "1.2.0",
       pharmacies: ubicadas,
       unlocated: sinUbicar,        // con nombre, dirección y teléfono
     };
