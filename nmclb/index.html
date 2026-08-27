@@ -2001,7 +2001,10 @@ function logout(){
 }
 
 // ── ACTUALIZACIONES ───────────────────────────────────────────────────────
-const APP_VERSION = 39;
+// Se lee del <meta name="app-version"> del head: un solo lugar para tocar
+const APP_VERSION = parseInt(
+  document.querySelector('meta[name="app-version"]')?.content || '0', 10
+);
 
 async function checkForUpdate(){
   const btn = document.getElementById('pf-update-btn');
@@ -2032,7 +2035,7 @@ async function checkForUpdate(){
             const regs = await navigator.serviceWorker.getRegistrations();
             await Promise.all(regs.map(r=>r.unregister()));
           }
-          location.reload(true);
+          hardReload();
         }
       );
     } else {
@@ -7285,7 +7288,15 @@ async function applyUpdate(){
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.all(regs.map(r=>r.unregister()));
   }
-  location.reload(true);
+  hardReload();
+}
+
+// location.reload(true) ya no fuerza nada en los navegadores modernos:
+// el HTML sigue saliendo del cache HTTP. Navegamos con un parametro unico
+// para obligar al servidor a devolver el archivo fresco.
+function hardReload(){
+  const base = location.origin + location.pathname;
+  location.replace(base + '?u=' + Date.now());
 }
 
 // ── ARRANQUE DE LA APP ───────────────────────────────────────────────────
