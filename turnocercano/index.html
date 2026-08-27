@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>turno cercano · altouch</title>
+<meta name="app-version" content="1.1.0">
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0C1A24">
@@ -259,20 +260,10 @@ body{background:var(--bg-0);color:var(--text);font-family:var(--font);font-size:
 
 <script>
 // ============================================================================
-// Datos de respaldo
+// Config
 // ============================================================================
-const PHARMACIES_FALLBACK = [
-  {name:"Acosta", addr:"Suipacha 2506", phone:"03424556677", lat:-31.6401411, lon:-60.7040322},
-  {name:"Alejandro Senn", addr:"4 de Enero 2599", phone:"03424529302", lat:-31.6445548, lon:-60.7114968},
-  {name:"Bonazzola Denise", addr:"Gral. López 2740", phone:"0342156139373", lat:-31.6566039, lon:-60.7113468},
-  {name:"Chelini", addr:"Av. Facundo Zuviría 4679", phone:"03424530348", lat:-31.6237060, lon:-60.7055044},
-  {name:"Giulioni", addr:"Gorostiaga 3038", phone:"03424889970", lat:-31.6105016, lon:-60.7021046},
-  {name:"López", addr:"Av. López y Planes 4267", phone:"03424534829", lat:-31.6257108, lon:-60.7139182},
-  {name:"Mai", addr:"Av. Aristóbulo del Valle 7431", phone:"03424602224", lat:-31.5998761, lon:-60.6920943},
-  {name:"Martínez Juan José", addr:"Av. Urquiza 1859", phone:"03424599949", lat:-31.6529940, lon:-60.7153790},
-  {name:"Méndez", addr:"Güemes 4356", phone:"03424531945", lat:-31.6307547, lon:-60.6866912},
-  {name:"Naito", addr:"Mendoza 4098", phone:"03424563842", lat:-31.6440716, lon:-60.7265361},
-];
+const APP_VERSION = '1.1.0';
+const API_URL = 'https://farmaciaenturno.netlify.app/.netlify/functions/farmacias';
 
 const SF_CENTER = [-31.6333, -60.7000];
 const REFRESH_MS = 10 * 60 * 1000;
@@ -290,6 +281,10 @@ function haversine(lat1, lon1, lat2, lon2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+function telHref(ph){
+  return ph.tel ? 'tel:' + ph.tel : 'tel:+54' + String(ph.phone || '').replace(/\D/g, '');
+}
+
 function setStatus(msg, spin){
   const el = document.getElementById('statusLine');
   el.style.display = 'flex';
@@ -297,28 +292,55 @@ function setStatus(msg, spin){
 }
 function hideStatus(){ document.getElementById('statusLine').style.display = 'none'; }
 function showError(msg){ const b = document.getElementById('errorBox'); b.style.display = 'block'; b.textContent = msg; }
+function showErrorHTML(html){ const b = document.getElementById('errorBox'); b.style.display = 'block'; b.innerHTML = html; }
 function hideError(){ document.getElementById('errorBox').style.display = 'none'; }
 
-// ---- Data loading ----
-let CURRENT_PHARMACIES = PHARMACIES_FALLBACK;
+// ============================================================================
+// Carga de datos
+//
+// Sin lista de respaldo a propósito: mostrar farmacias fijas cuando la fuente
+// falla equivale a mandar a alguien de madrugada a una farmacia cerrada. Si no
+// hay datos reales, la app lo dice y deriva a El Litoral.
+// ============================================================================
+let CURRENT_PHARMACIES = [];
+let UNLOCATED = [];
+let DATOS_OK = false;
 
 async function loadPharmacies(isBackground){
   const tag = document.getElementById('refreshTag');
   const tagText = document.getElementById('refreshTagText');
+  const locateBtn = document.getElementById('locateBtn');
+  const manualBtn = document.getElementById('manualBtn');
   try{
-    const resp = await fetch('https://farmaciaenturno.netlify.app/.netlify/functions/farmacias', {cache:'no-store'});
+    const resp = await fetch(API_URL, {cache:'no-store'});
     const data = await resp.json();
-    if(data.ok && data.pharmacies && data.pharmacies.length){
-      CURRENT_PHARMACIES = data.pharmacies;
-      tag.classList.add('live');
-      const hora = new Date(data.updatedAt).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
-      tagText.textContent = 'Turno actualizado · ' + hora + (data.missingCount ? ' · '+data.missingCount+' sin ubicar' : '');
-    } else { throw new Error(); }
+    if(!(data.ok && data.pharmacies && data.pharmacies.length)) throw new Error('sin datos');
+
+    CURRENT_PHARMACIES = data.pharmacies;
+    UNLOCATED = data.unlocated || [];
+    DATOS_OK = true;
+    tag.classList.add('live');
+    locateBtn.disabled = false;
+    manualBtn.style.display = '';
+    hideError();
+
+    const hora = new Date(data.updatedAt).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+    tagText.textContent = 'Turno actualizado · ' + hora +
+      (data.missingCount ? ' · ' + data.missingCount + ' sin ubicar' : '');
   }catch(e){
     tag.classList.remove('live');
-    tagText.textContent = isBackground ? 'Mostrando el último listado' : 'Datos de referencia cargados';
+    if(DATOS_OK){
+      // Ya teníamos datos buenos: los dejamos y avisamos que no se refrescaron.
+      tagText.textContent = 'Mostrando el último listado';
+    }else{
+      tagText.textContent = 'No se pudo cargar el turno';
+      locateBtn.disabled = true;
+      manualBtn.style.display = 'none';
+      showErrorHTML('No pudimos traer el turno de ahora. Miralo directo en ' +
+        '<a href="https://servicios.ellitoral.com/seccion/farmacias/" target="_blank" rel="noopener" style="color:inherit;font-weight:700;">El Litoral</a>.');
+    }
   }
-  if(userLat !== null) recompute();
+  if(userLat !== null && CURRENT_PHARMACIES.length) recompute();
 }
 
 // ---- Location flow ----
@@ -418,7 +440,7 @@ function renderReco(target, isManual){
   document.getElementById('recoAddr').textContent = target.addr + ' · Santa Fe';
   document.getElementById('recoDist').textContent = target.dist < 1 ? Math.round(target.dist*1000)+' m' : target.dist.toFixed(1)+' km';
   document.getElementById('recoTime').textContent = '~' + Math.max(2, Math.round(target.dist/0.35)) + ' min';
-  document.getElementById('recoCallBtn').href = 'tel:+54' + target.phone;
+  document.getElementById('recoCallBtn').href = telHref(target);
   document.getElementById('recoMapsBtn').href = 'https://www.google.com/maps/dir/?api=1&origin='+userLat+','+userLon+'&destination='+target.lat+','+target.lon;
 }
 
@@ -461,15 +483,26 @@ function renderMap(list, target){
 function renderList(list, target){
   const listEl = document.getElementById('list');
   document.getElementById('listDetails').style.display = 'block';
-  document.getElementById('listTitle').textContent = 'Todas las de turno ('+list.length+')';
+  const totalTurno = list.length + UNLOCATED.length;
+  document.getElementById('listTitle').textContent = 'Todas las de turno ('+totalTurno+')';
   listEl.innerHTML = '';
   list.forEach(ph => {
     const isTop = ph === list[0];
     const isSel = ph.name === target.name && ph.addr === target.addr;
     const div = document.createElement('div');
     div.className = 'item' + (isTop ? ' highlight' : '') + (isSel && !isTop ? ' selected' : '');
-    div.innerHTML = '<div><div class="name">'+(isTop?'★ ':'')+ph.name+'</div><div class="sub">'+ph.addr+'</div><a class="call" href="tel:+54'+ph.phone+'">'+ph.phone+'</a><div class="tap-hint">Tocá para trazar ruta</div></div><div class="dist">'+(ph.dist<1?Math.round(ph.dist*1000)+' m':ph.dist.toFixed(1)+' km')+'</div>';
+    div.innerHTML = '<div><div class="name">'+(isTop?'★ ':'')+ph.name+'</div><div class="sub">'+ph.addr+'</div><a class="call" href="'+telHref(ph)+'">'+ph.phone+'</a><div class="tap-hint">Tocá para trazar ruta</div></div><div class="dist">'+(ph.dist<1?Math.round(ph.dist*1000)+' m':ph.dist.toFixed(1)+' km')+'</div>';
     div.addEventListener('click', (ev) => { if(ev.target.closest('.call')) return; selectPharmacy(ph); });
+    listEl.appendChild(div);
+  });
+
+  // Farmacias que están de turno pero todavía sin coordenadas: se muestran
+  // igual (con teléfono), aclarando que no se les puede calcular distancia.
+  UNLOCATED.forEach(ph => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.style.cursor = 'default';
+    div.innerHTML = '<div><div class="name">'+ph.name+'</div><div class="sub">'+ph.addr+'</div><a class="call" href="'+telHref(ph)+'">'+ph.phone+'</a></div><div class="dist" style="color:var(--faint);font-weight:600;">sin ubicar</div>';
     listEl.appendChild(div);
   });
 }
