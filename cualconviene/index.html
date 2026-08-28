@@ -54,7 +54,7 @@ h2{font-size:20px;font-weight:700;}
 .choice-card p{font-size:13px;color:var(--text-dim);font-weight:400;line-height:1.4;}
 .choice-card .arr{margin-left:auto;color:var(--text-faint);font-size:22px;}
 .hist-link{display:flex;align-items:center;justify-content:center;gap:8px;background:none;border:none;color:var(--text-dim);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;padding:14px;width:100%;}
-.install-btn{display:none;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;min-height:50px;flex-shrink:0;margin-bottom:6px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--panel);color:var(--text);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;}
+.install-btn{display:none;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;min-height:50px;flex-shrink:0;margin:24px 0 2px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--panel);color:var(--text);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;}
 .install-btn:active{background:var(--panel-strong);}
 
 .btn{width:100%;height:56px;min-height:56px;flex-shrink:0;border-radius:var(--radius);border:none;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease,filter .2s ease;}
@@ -390,7 +390,7 @@ const PER_SCALE={peso:1000,volumen:1000,longitud:1,unidad:1};
 const COLORS=['#FF6B35','#FF3D57','#7FC97A','#3C82F6','#B368D9','#F5A623'];
 let state={type:'peso',compareProducts:[],cart:[]};
 
-const LS={cart:'cualconviene_cart',hist:'cualconviene_history',saved:'cualconviene_saved'};
+const LS={cart:'cualconviene_cart',hist:'cualconviene_history',saved:'cualconviene_saved',installed:'cualconviene_installed'};
 
 // ── Motor de ofertas ─────────────────────────────────────────────────────
 // Devuelve cuánto pagás EN TOTAL por `q` unidades, con la oferta aplicada.
@@ -855,8 +855,10 @@ window.addEventListener('beforeinstallprompt',e=>{
   if(b&&!IS_STANDALONE)b.style.display='flex';
 });
 
-// iOS nunca dispara ese evento: mostramos el botón a mano
-if(IS_IOS&&!IS_STANDALONE){
+// El botón se muestra siempre que la app no esté ya instalada.
+// Si el navegador disparó beforeinstallprompt, abre el diálogo nativo.
+// Si no (iPhone, o Chrome que no lo disparó), explica cómo hacerlo a mano.
+if(!IS_STANDALONE && !lsGet(LS.installed,false)){
   const b=document.getElementById('install-btn');
   if(b)b.style.display='flex';
 }
@@ -881,8 +883,11 @@ function installPWA(){
   }
   if(!deferredPrompt){
     showInstallHelp('Instalar ¿Cuál conviene?',
-      'Abrí el menú del navegador (⋮) y elegí <b>"Instalar app"</b> '+
-      'o <b>"Agregar a pantalla de inicio"</b>.');
+      'Tu navegador no te deja instalarla desde acá, pero sí desde su menú:<br><br>'+
+      '1. Tocá el menú <b>⋮</b> arriba a la derecha<br>'+
+      '2. Elegí <b>"Instalar"</b> o <b>"Instalar y crear acceso directo"</b><br>'+
+      '3. Confirmá<br><br>'+
+      'Si no te aparece esa opción, probá recargar la página.');
     return;
   }
   deferredPrompt.prompt();
@@ -895,6 +900,7 @@ function installPWA(){
 
 window.addEventListener('appinstalled',()=>{
   deferredPrompt=null;
+  lsSet(LS.installed,true); // para no volver a ofrecerla desde la pestaña del navegador
   const b=document.getElementById('install-btn');
   if(b)b.style.display='none';
   try{toast('¡Listo, quedó instalada!');}catch(e){}
