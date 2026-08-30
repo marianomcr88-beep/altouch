@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cuál conviene">
-<meta name="app-version" content="3">
+<meta name="app-version" content="4">
 <title>¿Cuál conviene? · altouch</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
@@ -188,6 +188,22 @@ h2{font-size:20px;font-weight:700;}
 .opreview .big{color:var(--green);}
 
 
+/* Historial: tarjeta tappeable + detalle de la compra */
+.hcard.pick{display:flex;align-items:center;gap:10px;cursor:pointer;transition:border .18s ease,transform .12s ease;}
+.hcard.pick:active{transform:scale(.985);border-color:var(--border-strong);}
+.hcard .hbody{flex:1;min-width:0;}
+.hcard .hgo{color:var(--text-faint);font-size:22px;flex-shrink:0;line-height:1;}
+.dhead{font-size:13px;color:var(--text-dim);margin:-8px 0 16px;}
+.dlist{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
+.dcard{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:11px 13px;}
+.dcard .dq{min-width:34px;height:34px;border-radius:9px;background:var(--panel-strong);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;padding:0 6px;}
+.dcard .di{flex:1;min-width:0;}
+.dcard .dn{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dcard .dd{font-size:12px;color:var(--text-dim);}
+.dcard .dd .was{text-decoration:line-through;opacity:.7;}
+.dcard .dp{font-size:15px;font-weight:800;white-space:nowrap;text-align:right;}
+.dsave{font-size:13px;font-weight:700;color:var(--green);background:rgba(127,201,122,.10);border:1px solid rgba(127,201,122,.30);border-radius:12px;padding:10px 13px;margin-bottom:14px;}
+
 .appfoot{display:flex;align-items:center;justify-content:center;gap:7px;padding-top:20px;margin-top:16px;opacity:.65;}
 .appfoot svg{width:15px;height:15px;flex-shrink:0;}
 .appfoot span{font-size:9px;color:var(--text-faint);font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
@@ -360,6 +376,17 @@ h2{font-size:20px;font-weight:700;}
     <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-hist" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-hist)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-hist)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-hist)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
   </section>
 
+  <!-- DETALLE DE UNA COMPRA -->
+  <section class="screen" id="s-detail">
+    <div class="topbar"><button class="back" onclick="go('history')">‹</button><h2>Detalle de compra</h2></div>
+    <div id="detail-container"></div>
+    <div class="mt-auto stack">
+      <button class="btn btn-ghost btn-sm" onclick="repeatPurchase()">↺ &nbsp;Repetir en mi lista</button>
+      <button class="btn btn-ghost btn-sm" onclick="deletePurchase()">🗑️ &nbsp;Borrar esta compra</button>
+    </div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-det" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-det)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-det)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-det)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
   <div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
   <div class="sheet" id="sheet">
     <div class="grab"></div>
@@ -506,6 +533,7 @@ function go(id){
   if(id==='add')renderMini();
   if(id==='cart')renderCart();
   if(id==='history')renderHistory();
+  if(id==='detail')renderDetail();
   document.getElementById('s-'+id).scrollTop=0;
 }
 
@@ -741,7 +769,11 @@ function closePurchase(){
   const total=state.cart.reduce((s,it)=>s+lineTotal(it),0);
   const count=state.cart.reduce((s,it)=>s+it.qty,0);
   const hist=lsGet(LS.hist,[]);
-  hist.unshift({date:Date.now(),total,count,items:state.cart.map(it=>({name:it.name,price:lineTotal(it),qty:it.qty,unitPrice:lineTotal(it)/it.qty}))});
+  // listPrice = precio de lista sin oferta; unitPrice = lo que terminó saliendo c/u
+  hist.unshift({date:Date.now(),total,count,items:state.cart.map(it=>({
+    name:it.name,price:lineTotal(it),qty:it.qty,unitPrice:lineTotal(it)/it.qty,
+    listPrice:Number(it.unitPrice),offer:it.offer||null
+  }))});
   lsSet(LS.hist,hist);state.cart=[];saveCart();toast('✓ Compra cerrada y archivada');go('history');
 }
 
@@ -763,9 +795,74 @@ function renderHistory(){
     repeated.forEach(m=>{const f=m.prices[0],l=m.prices[m.prices.length-1];const pc=((l-f)/f*100);html+=`<div class="trend"><div><div class="tn">${esc(m.name)}</div><div class="tp">$${f.toFixed(0)} → $${l.toFixed(0)} c/u</div></div>${deltaBadge(pc)}</div>`;});
   }
   html+='<div class="section-title">Compras cerradas</div>';
-  html+=hist.map(h=>`<div class="hcard"><div class="hhead"><span class="hdate">${fullDate(h.date)}</span><span class="htot">$${h.total.toLocaleString('es-AR',{maximumFractionDigits:0})}</span></div><div class="hmeta">${h.count} ítems · ${h.items.slice(0,3).map(i=>esc(i.name)).join(', ')}${h.items.length>3?'…':''}</div></div>`).join('');
+  html+=hist.map((h,i)=>`<div class="hcard pick" onclick="openPurchase(${i})"><div class="hbody"><div class="hhead"><span class="hdate">${fullDate(h.date)}</span><span class="htot">$${h.total.toLocaleString('es-AR',{maximumFractionDigits:0})}</span></div><div class="hmeta">${h.count} ítems · ${h.items.slice(0,3).map(i=>esc(i.name)).join(', ')}${h.items.length>3?'…':''}</div></div><div class="hgo">›</div></div>`).join('');
+  html+='<p class="note" style="text-align:left;margin-top:10px;">Tocá cualquier compra para ver el detalle completo.</p>';
   c.innerHTML=html;
 }
+// ── Detalle de una compra cerrada ────────────────────────────────────────
+let detailIdx=null;
+function openPurchase(i){detailIdx=i;go('detail');}
+function renderDetail(){
+  const c=document.getElementById('detail-container');
+  const hist=lsGet(LS.hist,[]);
+  const h=hist[detailIdx];
+  if(!h){c.innerHTML='<div class="empty">No encontramos esa compra.</div>';return;}
+  const items=h.items||[];
+  const count=(h.count!=null)?h.count:items.reduce((s,it)=>s+(Number(it.qty)||1),0);
+
+  let ahorroTotal=0;
+  const rows=items.map(it=>{
+    const qty=Number(it.qty)||1;
+    const line=Number(it.price!=null?it.price:(it.unitPrice||0)*qty);
+    const cu=Number(it.unitPrice!=null?it.unitPrice:line/qty);
+    // listPrice y offer solo existen en compras cerradas desde esta versión
+    const list=(it.listPrice!=null)?Number(it.listPrice):null;
+    const off=it.offer||null;
+    const conOferta=off&&offerApplies(off,qty);
+    const ahorro=(list!=null)?(list*qty-line):0;
+    if(ahorro>0.5)ahorroTotal+=ahorro;
+    let sub=qty+' × $'+fmtMoney(cu)+' c/u';
+    if(conOferta&&list!=null&&ahorro>0.5)sub+=' · <span class="was">$'+fmtMoney(list)+'</span>';
+    return `<div class="dcard">
+      <div class="dq">×${qty}</div>
+      <div class="di"><div class="dn">${esc(it.name)}${conOferta?'<span class="badge-offer">'+esc(offerLabel(off))+'</span>':''}</div>
+      <div class="dd">${sub}</div></div>
+      <div class="dp">$${fmtMoney(line)}</div></div>`;
+  }).join('');
+
+  c.innerHTML=
+    `<div class="total-banner"><div><div class="lbl">Total pagado</div><div class="val">$${fmtMoney(h.total)}</div></div>`+
+    `<div class="cnt"><b>${count}</b>ítems</div></div>`+
+    `<p class="dhead">${fullDate(h.date)} · ${items.length} producto${items.length===1?'':'s'} distinto${items.length===1?'':'s'}</p>`+
+    (ahorroTotal>0.5?`<div class="dsave">💚 Te ahorraste $${fmtMoney(ahorroTotal)} con las ofertas de esta compra.</div>`:'')+
+    (items.length?`<div class="dlist">${rows}</div>`:'<div class="empty">Esta compra no tiene el detalle guardado.</div>');
+}
+function deletePurchase(){
+  const hist=lsGet(LS.hist,[]);
+  const h=hist[detailIdx];
+  if(!h)return;
+  if(!confirm('¿Borrar la compra del '+fullDate(h.date)+'? No se puede deshacer.'))return;
+  hist.splice(detailIdx,1);
+  lsSet(LS.hist,hist);
+  detailIdx=null;
+  toast('✓ Compra borrada');
+  go('history');
+}
+function repeatPurchase(){
+  const hist=lsGet(LS.hist,[]);
+  const h=hist[detailIdx];
+  if(!h||!h.items||!h.items.length){toast('Esta compra no tiene productos guardados');return;}
+  h.items.forEach(it=>{
+    const qty=Number(it.qty)||1;
+    const up=(it.listPrice!=null)?Number(it.listPrice)
+            :(it.unitPrice!=null?Number(it.unitPrice):Number(it.price)/qty);
+    state.cart.push({name:it.name,qty,unitPrice:up,offer:it.offer||null,fromCompare:false});
+  });
+  saveCart();
+  toast('✓ '+h.items.length+' productos a tu lista');
+  go('cart');
+}
+
 function deltaBadge(pc){if(Math.abs(pc)<0.5)return '<div class="delta flat">=</div>';const cls=pc>0?'up':'down';const a=pc>0?'▲':'▼';return `<div class="delta ${cls}">${a} ${Math.abs(pc).toFixed(0)}%</div>`;}
 
 function reset(){state.type='peso';fillUnits();setType('peso');newComparison();}
