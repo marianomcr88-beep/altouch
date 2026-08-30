@@ -1,5 +1,5 @@
 // ¿Cuál conviene? Service Worker — altouch
-const CACHE = 'cualconviene-v4';
+const CACHE = 'cualconviene-v1';
 const ASSETS = [
   './',
   './index.html',
