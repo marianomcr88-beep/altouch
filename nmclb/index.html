@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="40">
+<meta name="app-version" content="46">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -2022,22 +2022,7 @@ async function checkForUpdate(){
     if(remote > APP_VERSION){
       btn.textContent = original;
       btn.disabled = false;
-      askConfirmCustom(
-        `Hay una versión nueva disponible (v${remote}).\n\nSe va a recargar la app. Tus datos no se pierden.`,
-        'Actualizar ahora',
-        async ()=>{
-          // Limpiar cachés del service worker y recargar
-          if('caches' in window){
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k=>caches.delete(k)));
-          }
-          if('serviceWorker' in navigator){
-            const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r=>r.unregister()));
-          }
-          hardReload();
-        }
-      );
+      openUpdateModal(remote);
     } else {
       btn.textContent = '✓ Ya tenés la última versión';
       setTimeout(()=>{ btn.textContent = original; btn.disabled = false; }, 2500);
@@ -2047,6 +2032,64 @@ async function checkForUpdate(){
     btn.textContent = original;
     btn.disabled = false;
     toast('No se pudo verificar. Revisá tu conexión.');
+  }
+}
+
+// ── Aviso de versión nueva, con backup a mano ────────────────────────────
+// Actualizar no borra datos, pero el backup es la única red si algo sale mal:
+// conviene que esté a un toque y no escondido en el perfil.
+function backupAgeLine(){
+  const iso = localStorage.getItem('nmclb_lastBackup');
+  if(!iso) return {texto:'Todavía no hiciste ningún backup.', alerta:true};
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  const fecha = new Date(iso).toLocaleDateString('es-AR');
+  if(dias <= 0) return {texto:'Último backup: hoy ('+fecha+').', alerta:false};
+  if(dias === 1) return {texto:'Último backup: ayer ('+fecha+').', alerta:false};
+  return {texto:'Último backup: hace '+dias+' días ('+fecha+').', alerta: dias > 14};
+}
+
+// applyUpdate() ya existe más abajo (limpia cachés, desregistra el SW y
+// recarga). Se reutiliza esa en vez de declararla dos veces.
+function openUpdateModal(remote){
+  closeModal('modal-profile');
+  setTimeout(()=>{
+    const age = backupAgeLine();
+    document.getElementById('settle-title').textContent = '🔄 Versión nueva (v'+remote+')';
+    document.getElementById('settle-body').innerHTML = `
+      <p style="font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">
+        Se va a recargar la app. Tus datos no se pierden, pero antes de actualizar
+        conviene bajar una copia: es lo único que te deja volver atrás si algo sale mal.
+      </p>
+      <div style="background:var(--panel);border:1px solid ${age.alerta?'rgba(247,162,106,.45)':'var(--border)'};border-radius:13px;padding:12px 13px;margin-bottom:16px;">
+        <p style="font-size:12px;color:${age.alerta?'var(--accent-soft)':'var(--text-dim)'};line-height:1.45;">
+          ${age.alerta?'⚠️ ':''}${age.texto}
+        </p>
+      </div>
+      <div class="stack">
+        <button class="btn btn-green" id="up-backup-btn" onclick="backupThenUpdate()">📦 Bajar backup primero</button>
+        <button class="btn btn-accent" onclick="applyUpdate()">Actualizar ahora</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Más tarde</button>
+      </div>`;
+    document.getElementById('modal-settle').style.display='flex';
+  }, 220);
+}
+
+// Se baja el backup y recién ahí se habilita actualizar: si recargáramos al
+// toque, en el celular la descarga puede quedar cortada por la mitad.
+function backupThenUpdate(){
+  exportBackup();
+  const btn = document.getElementById('up-backup-btn');
+  if(!btn) return;
+  btn.disabled = true;
+  btn.textContent = '✓ Backup descargado';
+  const stack = btn.parentElement;
+  if(stack && !document.getElementById('up-go-btn')){
+    const go = document.createElement('button');
+    go.className = 'btn btn-accent';
+    go.id = 'up-go-btn';
+    go.textContent = 'Ahora sí, actualizar';
+    go.onclick = applyUpdate;
+    stack.insertBefore(go, btn.nextSibling);
   }
 }
 
@@ -2122,6 +2165,7 @@ function exportBackup(){
     a.click();
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    localStorage.setItem('nmclb_lastBackup', new Date().toISOString());
     toast('📦 Backup descargado');
   }catch(e){ console.error('exportBackup', e); toast('No se pudo exportar'); }
 }
@@ -2320,7 +2364,12 @@ async function recoverWithPhrase(){
 
     // Si puso una contraseña nueva, recifrar todo con ella
     if(newPass && newPass.length >= 8){
+      // La privada ECDH y los secretos compartidos están envueltos con la
+      // clave VIEJA. Se reenvuelven con la nueva ANTES de perderla de vista:
+      // si no, quedan huérfanos y los gastos compartidos se vuelven ilegibles.
+      const reWrap = await collectKeyMaterial(currentUser.uid);
       await unlockEncryption(newPass, currentUser.uid);
+      await restoreKeyMaterial(currentUser.uid, reWrap);
       clearBioWrappedKey();     // la clave cambió: la envoltura vieja ya no sirve
       await FB.remove(FB.ref(FB.db,'users/'+currentUser.uid+'/canary'));
       await verifyKeyAgainstCanary(currentUser.uid);
@@ -2516,6 +2565,7 @@ async function restoreKeyFromBio(){
 async function resumeSyncWithKey(){
   if(!cryptoKey || !syncEnabled || !currentUser) return;
   try{
+    await ensureEcdhKeys();
     await pullFromCloud();
     listenToCloud();
     listenToShared();
@@ -4373,6 +4423,10 @@ async function deriveKey(secret, saltStr){
 async function encryptText(plain, key){
   if(plain == null) return plain;
   if(typeof plain === 'string' && plain.startsWith(ENC_PREFIX)) return plain;
+  // Si el llamador pasó una clave EXPLÍCITA y vino vacía, no se cae a la
+  // personal. Cifrar un dato compartido con la clave personal lo vuelve
+  // ilegible para la otra persona, y del otro lado su monto pasa a contar $0.
+  if(arguments.length >= 2 && !key) throw new Error('encryptText: clave compartida vacía');
   const k = key || cryptoKey;
   if(!k) return plain;
   try{
@@ -4392,6 +4446,9 @@ async function encryptText(plain, key){
 // vieja sin clave lista). Tope de seguridad para no entrar en loop infinito.
 async function decryptText(cipher, key){
   if(typeof cipher !== 'string' || !cipher.startsWith(ENC_PREFIX)) return cipher;
+  // Mismo criterio que encryptText: una clave explícita vacía no se sustituye
+  // por la personal, o un dato compartido "se lee bien" sólo para quien lo puso.
+  if(arguments.length >= 2 && !key) return null;
   const k = key || cryptoKey;
   if(!k) return null;
   let result = cipher;
@@ -4616,6 +4673,7 @@ window.addEventListener('firebase-ready', ()=>{
     if(user){
       localStorage.setItem('nmclb_uid', user.uid);
       localStorage.setItem('nmclb_email', user.email||'');
+      await ensureEcdhKeys();
       await pullFromCloud();
       listenToCloud();
       claimSession();
@@ -5070,13 +5128,13 @@ function openCloseMonthModal(){
       </p>
     </div>
     <div class="stack" style="margin-top:4px;">
-      <button class="btn btn-accent" onclick="confirmCloseMonth('${mk}','${esc(label)}')">📦 Cerrar y archivar</button>
+      <button class="btn btn-accent" id="cm-confirm-btn" onclick="confirmCloseMonth('${mk}','${esc(label)}')">📦 Cerrar y archivar</button>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
     </div>`;
   document.getElementById('modal-settle').style.display='flex';
 }
 
-function confirmCloseMonth(monthKey, label){
+async function confirmCloseMonth(monthKey, label){
   const alsoSettle = document.getElementById('cm-settle')?.checked;
   const movs = getExpenses();
   const settles = getSettlements();
@@ -5128,16 +5186,18 @@ function confirmCloseMonth(monthKey, label){
   // Limpiar el mes en curso
   saveExpenses([]);
   saveTrash([]);   // la papelera se vacía con el cierre
+
   if(alsoSettle){
     saveSettlements([]);
-    // Vaciar también los gastos compartidos en la nube
-    getConnections().forEach(async c=>{
-      try{
-        const movsC = getSharedExpenses(c.pairId);
-        for(const m of movsC){ if(m.fbKey) await deleteSharedExpense(c.pairId, m.fbKey); }
-        localStorage.removeItem('nmclb_shared_'+c.pairId);
-      }catch(e){}
-    });
+    // Se ESPERA a que la nube quede vacía antes de seguir. Antes esto era un
+    // forEach(async …) sin await: la función seguía de largo, el listener de
+    // compartidos iba reescribiendo el cache local con los borrados a medio
+    // camino, y el removeItem perdía la carrera. De ahí el "queda a medias".
+    const btnC = document.getElementById('cm-confirm-btn');
+    if(btnC){ btnC.disabled = true; btnC.textContent = 'Cerrando…'; }
+    try{
+      await clearSharedForAll(label);
+    }catch(e){ console.error(e); toast('Se archivó, pero la nube compartida quedó a medias'); }
   }
 
   closeModal('modal-settle');
@@ -5145,6 +5205,53 @@ function confirmCloseMonth(monthKey, label){
   go('s-archive');
   renderArchive();
   toast('✓ '+capitalize(label)+' archivado');
+}
+
+// Vacía los gastos compartidos de todas las conexiones y avisa a la otra parte.
+async function clearSharedForAll(label){
+  const conns = getConnections();
+  for(const c of conns){
+    await clearSharedForPair(c, label);
+  }
+}
+
+async function clearSharedForPair(conn, label){
+  if(!syncEnabled || !currentUser){
+    localStorage.removeItem('nmclb_shared_'+conn.pairId);
+    return;
+  }
+  const base = 'shared/'+conn.pairId;
+
+  // Se lee el nodo entero en vez de recorrer el cache local: así también caen
+  // los movimientos sin fbKey (cargados sin conexión), que antes quedaban
+  // vivos en la nube para siempre.
+  const snap = await FB.get(FB.ref(FB.db, base));
+  const data = snap.exists() ? snap.val() : {};
+
+  const updates = {};
+  Object.keys(data).forEach(k=>{
+    // Todo lo que empieza con "_" es infraestructura del par (_meta, _secret,
+    // _wrapped): se conserva. Enumerarlo a mano ya falló una vez: al sumar
+    // _wrapped en la v43 el cierre de mes se llevaba puesta la clave del par.
+    if(k.startsWith('_')) return;
+    updates[k] = null;
+  });
+
+  // Aviso para la otra persona: no le borramos nada, decide ella.
+  const closeId = String(Date.now());
+  updates['_meta/close'] = {
+    id: closeId,
+    at: new Date().toISOString(),
+    by: currentUser.uid,
+    byName: localStorage.getItem('nmclb_name') || '',
+    label: label || ''
+  };
+
+  await FB.update(FB.ref(FB.db, base), updates);
+
+  // Ya cerrado por mí: no me tengo que auto-avisar
+  localStorage.setItem('nmclb_sharedCloseSeen_'+conn.pairId, closeId);
+  localStorage.removeItem('nmclb_shared_'+conn.pairId);
 }
 
 // Congela los saldos de todos los bolsillos en el momento del cierre
@@ -5987,6 +6094,91 @@ async function inviteConnection(){
 
 // ── CIFRADO DE GASTOS COMPARTIDOS ────────────────────────────────────────
 // Cada par usa una clave derivada del pairId + un secreto compartido.
+// ══════════════════════════════════════════════════════════════════════════
+//  CLAVE COMPARTIDA SIN SECRETO EN TEXTO PLANO (ECDH P-256)
+//  Cada persona tiene un par de claves. La pública se publica; la privada se
+//  guarda envuelta con su clave personal. Con mi privada + su pública (o al
+//  revés) los dos derivamos el MISMO valor, sin que ese valor viaje nunca.
+//  El usuario no ve nada de esto: se arma solo al entrar.
+// ══════════════════════════════════════════════════════════════════════════
+let myEcdhPair = null;          // {publicKey, privateKey}, sólo en memoria
+const peerPubCache = {};        // { uid: CryptoKey }
+
+const b64enc = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64dec = str => Uint8Array.from(atob(str), c=>c.charCodeAt(0));
+
+// Genera el par si hace falta y deja la privada envuelta en mi espacio
+async function ensureEcdhKeys(){
+  if(myEcdhPair) return myEcdhPair;
+  if(!cryptoKey || !currentUser) return null;
+  const uid = currentUser.uid;
+  try{
+    const wrapSnap = await FB.get(FB.ref(FB.db,'users/'+uid+'/ecdhPriv'));
+    if(wrapSnap.exists()){
+      const pkcs8b64 = await decryptText(wrapSnap.val());
+      const pubSnap  = await FB.get(FB.ref(FB.db,'pubKeys/'+uid));
+      if(pkcs8b64 && pubSnap.exists()){
+        const privateKey = await crypto.subtle.importKey('pkcs8', b64dec(pkcs8b64),
+          {name:'ECDH', namedCurve:'P-256'}, false, ['deriveBits']);
+        const publicKey = await crypto.subtle.importKey('spki', b64dec(pubSnap.val()),
+          {name:'ECDH', namedCurve:'P-256'}, true, []);
+        myEcdhPair = {publicKey, privateKey};
+        return myEcdhPair;
+      }
+    }
+    // Si ya hay una pública publicada, NO se regenera: pisarla dejaría el
+    // secreto envuelto imposible de abrir para las dos personas, y los gastos
+    // compartidos serían ilegibles para siempre.
+    const existing = await FB.get(FB.ref(FB.db,'pubKeys/'+uid));
+    if(existing.exists()){
+      console.error('ecdh: hay clave pública pero no se pudo abrir la privada');
+      toast('No se pudo abrir la clave de compartidos — usá tu frase de recuperación');
+      return null;
+    }
+
+    const pair = await crypto.subtle.generateKey(
+      {name:'ECDH', namedCurve:'P-256'}, true, ['deriveBits']);
+    const pub  = await crypto.subtle.exportKey('spki',  pair.publicKey);
+    const priv = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
+    await FB.set(FB.ref(FB.db,'pubKeys/'+uid), b64enc(pub));
+    await FB.set(FB.ref(FB.db,'users/'+uid+'/ecdhPriv'), await encryptText(b64enc(priv)));
+    myEcdhPair = pair;
+    return myEcdhPair;
+  }catch(e){ console.error('ecdh', e); return null; }
+}
+
+async function getPeerPublicKey(uid){
+  if(peerPubCache[uid]) return peerPubCache[uid];
+  try{
+    const snap = await FB.get(FB.ref(FB.db,'pubKeys/'+uid));
+    if(!snap.exists()) return null;   // esa persona todavía no actualizó
+    peerPubCache[uid] = await crypto.subtle.importKey('spki', b64dec(snap.val()),
+      {name:'ECDH', namedCurve:'P-256'}, false, []);
+    return peerPubCache[uid];
+  }catch(e){ return null; }
+}
+
+// Clave AES para envolver el secreto del par. Los dos llegan al mismo valor.
+async function deriveWrapKey(otherUid, pairId){
+  const mine = await ensureEcdhKeys();
+  if(!mine) return null;
+  const theirs = await getPeerPublicKey(otherUid);
+  if(!theirs) return null;
+  const bits = await crypto.subtle.deriveBits(
+    {name:'ECDH', public: theirs}, mine.privateKey, 256);
+  const base = await crypto.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'HKDF', hash:'SHA-256',
+      salt: new TextEncoder().encode('nmclb-pair-'+pairId),
+      info: new TextEncoder().encode('wrap-secret') },
+    base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+
+function otherUidOf(pairId){
+  if(!currentUser) return null;
+  return pairId.split('_').find(u => u !== currentUser.uid) || null;
+}
+
 const sharedKeys = {};   // { pairId: CryptoKey }
 
 async function getSharedKey(pairId){
@@ -6003,20 +6195,67 @@ async function getSharedKey(pairId){
     if(snap.exists()){
       secret = await decryptText(snap.val());
     }
+    const otherUid = otherUidOf(pairId);
+
+    // 2) Copia envuelta con ECDH: sólo la abren las dos partes
+    if(!secret && otherUid){
+      const wrapKey = await deriveWrapKey(otherUid, pairId);
+      if(wrapKey){
+        const wSnap = await FB.get(FB.ref(FB.db,'shared/'+pairId+'/_wrapped'));
+        if(wSnap.exists()) secret = await decryptText(wSnap.val(), wrapKey);
+      }
+    }
+
+    // 3) Secreto viejo en texto plano: se usa y se migra
     if(!secret){
-      // Crear el secreto y publicarlo para que el otro lo tome
       const metaSnap = await FB.get(FB.ref(FB.db,'shared/'+pairId+'/_secret'));
       if(metaSnap.exists()){
-        secret = metaSnap.val();   // lo dejó la otra persona
+        secret = metaSnap.val();
+        await migrateSecretToWrapped(pairId, secret);
+      }
+    }
+
+    // 4) No existe todavía: lo crea uno solo del par, nunca los dos
+    if(!secret){
+      // El pairId es 'uidA_uidB' ordenado, así que el criterio es el mismo
+      // para ambos y no depende de quién llegue primero.
+      const soyElPrimero = pairId.split('_')[0] === currentUser.uid;
+      if(!soyElPrimero){
+        await new Promise(r=>setTimeout(r, 1200));
+        const retryW = otherUid ? await deriveWrapKey(otherUid, pairId) : null;
+        if(retryW){
+          const wSnap = await FB.get(FB.ref(FB.db,'shared/'+pairId+'/_wrapped'));
+          if(wSnap.exists()) secret = await decryptText(wSnap.val(), retryW);
+        }
+        if(!secret){
+          const retry = await FB.get(FB.ref(FB.db,'shared/'+pairId+'/_secret'));
+          if(!retry.exists()) return null;   // todavía no lo creó: se reintenta después
+          secret = retry.val();
+        }
       } else {
         const bytes = new Uint8Array(32);
         crypto.getRandomValues(bytes);
         secret = btoa(String.fromCharCode(...bytes));
-        await FB.set(FB.ref(FB.db,'shared/'+pairId+'/_secret'), secret);
+        const wrapKey = otherUid ? await deriveWrapKey(otherUid, pairId) : null;
+        if(wrapKey){
+          // Nace envuelto: el texto plano no llega a existir nunca
+          await FB.set(FB.ref(FB.db,'shared/'+pairId+'/_wrapped'),
+                       await encryptText(secret, wrapKey));
+        } else {
+          // La otra persona todavía no publicó su clave pública (app vieja).
+          // Se usa el formato anterior y se migra solo cuando actualice.
+          await FB.set(FB.ref(FB.db,'shared/'+pairId+'/_secret'), secret);
+        }
       }
-      // Guardarlo cifrado en mi espacio
-      await FB.set(FB.ref(FB.db, path), await encryptText(secret));
     }
+
+    // Copia propia, cifrada con mi clave personal (arranque rápido)
+    await FB.set(FB.ref(FB.db, path), await encryptText(secret));
+
+    // Las cuentas que ya venían funcionando tienen la copia personal, así que
+    // salían por el camino 1 y la migración no llegaba a correr nunca. Se
+    // intenta acá, después de tener el secreto, venga de donde venga.
+    if(otherUid) await migrateSecretToWrapped(pairId, secret);
     sharedKeys[pairId] = await deriveKey(secret, 'nmclb-shared-'+pairId);
     return sharedKeys[pairId];
   }catch(e){ console.error('sharedKey', e); return null; }
@@ -6032,20 +6271,125 @@ async function encryptSharedMov(pairId, mov){
   };
 }
 
+// Pasa un par del secreto en texto plano al envuelto con ECDH.
+// El borrado del texto plano SÓLO ocurre cuando la copia envuelta ya está
+// escrita y verificada: si la otra persona todavía no actualizó, no se toca
+// nada, porque quedaría sin poder leer sus propios gastos.
+async function migrateSecretToWrapped(pairId, secret){
+  try{
+    const otherUid = otherUidOf(pairId);
+    if(!otherUid) return false;
+    const wrapKey = await deriveWrapKey(otherUid, pairId);
+    if(!wrapKey) return false;             // la otra persona sigue en la versión vieja
+
+    const base = 'shared/'+pairId;
+    const wSnap = await FB.get(FB.ref(FB.db, base+'/_wrapped'));
+    if(!wSnap.exists()){
+      await FB.set(FB.ref(FB.db, base+'/_wrapped'), await encryptText(secret, wrapKey));
+    }
+
+    // Releer y comprobar que se abre antes de borrar nada
+    const check = await FB.get(FB.ref(FB.db, base+'/_wrapped'));
+    if(!check.exists()) return false;
+    if(await decryptText(check.val(), wrapKey) !== secret) return false;
+
+    await FB.remove(FB.ref(FB.db, base+'/_secret'));
+    return true;
+  }catch(e){ console.error('migrar secreto', e); return false; }
+}
+
+// Lee en claro (con la clave personal ACTUAL) todo lo que está envuelto con
+// ella y vive fuera de SYNC_KEYS. Se usa antes de cambiar la contraseña.
+async function collectKeyMaterial(uid){
+  const out = { ecdhPriv: null, sharedSecrets: {} };
+  try{
+    const pv = await FB.get(FB.ref(FB.db,'users/'+uid+'/ecdhPriv'));
+    if(pv.exists()) out.ecdhPriv = await decryptText(pv.val());
+    const ss = await FB.get(FB.ref(FB.db,'users/'+uid+'/sharedSecrets'));
+    if(ss.exists()){
+      const all = ss.val();
+      for(const pid of Object.keys(all)){
+        const plain = await decryptText(all[pid]);
+        if(plain) out.sharedSecrets[pid] = plain;
+      }
+    }
+  }catch(e){ console.error('collectKeyMaterial', e); }
+  return out;
+}
+
+// Vuelve a envolver ese material con la clave personal nueva
+async function restoreKeyMaterial(uid, mat){
+  if(!mat) return;
+  try{
+    if(mat.ecdhPriv){
+      await FB.set(FB.ref(FB.db,'users/'+uid+'/ecdhPriv'), await encryptText(mat.ecdhPriv));
+    }
+    for(const pid of Object.keys(mat.sharedSecrets||{})){
+      await FB.set(FB.ref(FB.db,'users/'+uid+'/sharedSecrets/'+pid),
+                   await encryptText(mat.sharedSecrets[pid]));
+    }
+  }catch(e){ console.error('restoreKeyMaterial', e); }
+}
+
 async function decryptSharedMov(pairId, mov){
   const k = await getSharedKey(pairId);
-  if(!k) return mov;
   const out = {...mov};
+  if(!k){ out.locked = true; out.amount = 0; return out; }
+
   if(typeof out.desc === 'string' && out.desc.startsWith(ENC_PREFIX)){
     out.desc = (await decryptText(out.desc, k)) ?? out.desc;
   }
   if(typeof out.amount === 'string' && out.amount.startsWith(ENC_PREFIX)){
-    out.amount = Number(await decryptText(out.amount, k)) || 0;
+    // Antes: Number(null) || 0 → el movimiento valía CERO sin avisar nada.
+    // Ahora se marca como ilegible y se cuenta aparte, a la vista.
+    const plain = await decryptText(out.amount, k);
+    if(plain == null){ out.locked = true; out.amount = 0; }
+    else out.amount = Number(plain) || 0;
   }
   if(typeof out.byName === 'string' && out.byName.startsWith(ENC_PREFIX)){
     out.byName = (await decryptText(out.byName, k)) ?? out.byName;
   }
   return out;
+}
+
+// Re-cifra con la clave compartida los movimientos propios que quedaron
+// cifrados con la clave personal (el bug de encryptText sin clave explícita).
+// Sólo se pueden reparar los que puso uno mismo: son los únicos que uno puede
+// descifrar con su clave personal.
+async function repairSharedEncryption(pairId){
+  if(!syncEnabled || !currentUser || !cryptoKey) return {fixed:0, stuck:0};
+  const k = await getSharedKey(pairId);
+  if(!k) return {fixed:0, stuck:0};
+  let fixed = 0, stuck = 0;
+  const snap = await FB.get(FB.ref(FB.db, 'shared/'+pairId));
+  const data = snap.exists() ? snap.val() : {};
+  for(const key of Object.keys(data)){
+    if(key.startsWith('_')) continue;
+    const m = data[key];
+    if(typeof m.amount !== 'string' || !m.amount.startsWith(ENC_PREFIX)) continue;
+    if(await decryptText(m.amount, k) != null) continue;   // se lee bien, nada que hacer
+    if(m.byUid !== currentUser.uid){ stuck++; continue; }   // lo puso la otra persona
+    const amount = await decryptText(m.amount, cryptoKey);
+    if(amount == null){ stuck++; continue; }
+    const desc   = await decryptText(m.desc,   cryptoKey);
+    const byName = await decryptText(m.byName, cryptoKey);
+    const upd = { amount: await encryptText(String(amount), k) };
+    if(desc   != null) upd.desc   = await encryptText(desc, k);
+    if(byName != null) upd.byName = await encryptText(byName, k);
+    await FB.update(FB.ref(FB.db, 'shared/'+pairId+'/'+key), upd);
+    fixed++;
+  }
+  return {fixed, stuck};
+}
+
+async function repairSharedFromUI(pairId){
+  toast('Revisando…');
+  try{
+    const {fixed, stuck} = await repairSharedEncryption(pairId);
+    if(fixed) toast('✓ '+fixed+' movimiento'+(fixed>1?'s':'')+' reparado'+(fixed>1?'s':''));
+    else if(stuck) toast('Los ilegibles los puso la otra persona: tiene que repararlos desde su celular');
+    else toast('No había nada para reparar');
+  }catch(e){ console.error(e); toast('No se pudo reparar'); }
 }
 
 // Escuchar los gastos compartidos de todas mis conexiones
@@ -6063,7 +6407,7 @@ function listenToShared(){
     FB.onValue(r, async (snap)=>{
       const data = snap.exists() ? snap.val() : {};
       const raw = Object.keys(data)
-        .filter(k=>k!=='_meta' && k!=='_secret')
+        .filter(k=>!k.startsWith('_'))
         .map(k=>({fbKey:k, ...data[k]}));
       const arr = await Promise.all(raw.map(m=>decryptSharedMov(c.pairId, m)));
       localStorage.setItem('nmclb_shared_'+c.pairId, JSON.stringify(arr));
@@ -6079,6 +6423,19 @@ function listenToShared(){
             list[i].name = info.name;
             localStorage.setItem('nmclb_connections', JSON.stringify(list));
           }
+        }
+      }
+
+      // ¿La otra persona cerró las cuentas compartidas? No se le toca nada:
+      // se marca como pendiente y decide desde la pantalla de Compartido.
+      const cl = data._meta && data._meta.close;
+      if(cl && cl.id && cl.by !== currentUser.uid){
+        const seen = localStorage.getItem('nmclb_sharedCloseSeen_'+c.pairId);
+        const done = localStorage.getItem('nmclb_sharedClosePending_'+c.pairId);
+        if(seen !== cl.id && done !== cl.id){
+          localStorage.setItem('nmclb_sharedClosePending_'+c.pairId, cl.id);
+          localStorage.setItem('nmclb_sharedCloseInfo_'+c.pairId, JSON.stringify(cl));
+          try{ toast((cl.byName || 'La otra persona') + ' cerró las cuentas compartidas'); }catch(e){}
         }
       }
 
@@ -6140,6 +6497,12 @@ async function pushSharedExpense(conn, expense){
   if(!syncEnabled || !currentUser) return null;
   try{
     const k = await getSharedKey(conn.pairId);
+    if(!k){
+      // Antes se seguía igual: encryptText caía a la clave personal y el gasto
+      // quedaba en la nube ilegible para la otra persona.
+      toast('No se pudo cifrar para compartir — el gasto quedó sólo tuyo');
+      return null;
+    }
     const payload = {
       ...expense,
       byUid: currentUser.uid,
@@ -6203,9 +6566,10 @@ function computeSharedBalances(){
   // 1) Gastos compartidos sincronizados (por conexión)
   getConnections().forEach(c=>{
     const movs = getSharedExpenses(c.pairId);
-    if(!map[c.name]) map[c.name] = {mine:0, theirs:0, settled:0, movs:[], conn:c, synced:true};
+    if(!map[c.name]) map[c.name] = {mine:0, theirs:0, settled:0, locked:0, movs:[], conn:c, synced:true};
     movs.forEach(m=>{
       const mine = m.byUid === myUid;
+      if(m.locked){ map[c.name].locked = (map[c.name].locked||0) + 1; }
       if(mine) map[c.name].mine += Number(m.amount)||0;
       else     map[c.name].theirs += Number(m.amount)||0;
       map[c.name].movs.push({...m, paidBy: mine ? 'me' : 'them'});
@@ -6591,6 +6955,81 @@ function exportSharedPDF(personName){
   }
 }
 
+// ── Aviso: la otra persona cerró las cuentas compartidas ─────────────────
+// No se le borra nada a nadie automáticamente. Los gastos compartidos ya
+// desaparecieron (viven en un nodo común), pero los pagos registrados son
+// propios de cada celular, así que cada uno decide si los pone en cero.
+function getSharedClosePending(pairId){
+  if(!pairId) return null;
+  const id = localStorage.getItem('nmclb_sharedClosePending_'+pairId);
+  if(!id) return null;
+  try{
+    const info = JSON.parse(localStorage.getItem('nmclb_sharedCloseInfo_'+pairId)||'null');
+    return (info && info.id === id) ? info : null;
+  }catch(e){ return null; }
+}
+
+// Aviso cuando hay movimientos compartidos que no se pueden descifrar.
+// Antes contaban $0 en silencio y el balance de cada uno daba distinto.
+function renderSharedLockedNotice(d, person){
+  if(!d.locked || !d.conn) return '';
+  const n = d.locked;
+  return `<div style="background:rgba(255,90,110,.10);border:1px solid rgba(255,90,110,.35);border-radius:14px;padding:14px;margin-bottom:16px;">
+    <p style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:5px;">🔒 ${n} movimiento${n>1?'s':''} no se puede${n>1?'n':''} leer</p>
+    <p style="font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:11px;">
+      Quedaron cifrados con una clave que no coincide, así que no suman al balance.
+      Si los cargaste vos, se pueden reparar desde acá. Si los cargó ${esc(person)},
+      tiene que hacerlo desde su celular.
+    </p>
+    <button class="btn btn-sm" onclick="repairSharedFromUI('${esc(d.conn.pairId)}')" style="width:auto;padding:0 14px;background:var(--panel-strong);border:1px solid var(--border-strong);color:var(--text);">Reparar los míos</button>
+  </div>`;
+}
+
+function renderSharedCloseNotice(conn, person){
+  const info = getSharedClosePending(conn && conn.pairId);
+  if(!info) return '';
+  const quien = esc(info.byName || person || 'La otra persona');
+  const cuando = info.label ? ' al cerrar ' + esc(info.label) : '';
+  return `<div style="background:rgba(247,162,106,.12);border:1px solid rgba(247,162,106,.35);border-radius:14px;padding:14px;margin-bottom:16px;">
+    <p style="font-size:13px;font-weight:800;color:var(--accent-soft);margin-bottom:5px;">📅 ${quien} cerró las cuentas compartidas${cuando}</p>
+    <p style="font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:11px;">
+      Los gastos compartidos ya se vaciaron para los dos. Los pagos que registraste
+      vos siguen acá: si los ponés en cero, el balance con ${esc(person)} arranca limpio.
+      Tus movimientos propios y tus bolsillos no se tocan.
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-sm" onclick="acceptSharedClose('${esc(conn.pairId)}','${esc(person)}')" style="width:auto;padding:0 14px;background:var(--panel-strong);border:1px solid var(--border-strong);color:var(--text);">Poner en cero</button>
+      <button class="btn btn-ghost btn-sm" onclick="dismissSharedClose('${esc(conn.pairId)}')" style="width:auto;padding:0 14px;">Dejar como está</button>
+    </div>
+  </div>`;
+}
+
+function markSharedCloseSeen(pairId){
+  const id = localStorage.getItem('nmclb_sharedClosePending_'+pairId);
+  if(id) localStorage.setItem('nmclb_sharedCloseSeen_'+pairId, id);
+  localStorage.removeItem('nmclb_sharedClosePending_'+pairId);
+  localStorage.removeItem('nmclb_sharedCloseInfo_'+pairId);
+}
+
+function acceptSharedClose(pairId, person){
+  askConfirm('¿Poner en cero el balance con '+person+'? Se borran los pagos que registraste con esa persona. Tus gastos y bolsillos quedan igual.', ()=>{
+    saveSettlements(getSettlements().filter(s=>s.person !== person));
+    localStorage.removeItem('nmclb_shared_'+pairId);
+    markSharedCloseSeen(pairId);
+    refreshAllScreens();
+    renderShared();
+    renderSharedDetail();
+    toast('✓ Balance con '+person+' en cero');
+  }, 'Sí, poner en cero');
+}
+
+function dismissSharedClose(pairId){
+  markSharedCloseSeen(pairId);
+  renderShared();
+  renderSharedDetail();
+  toast('Se dejó como estaba');
+}
+
 function renderSharedDetail(){
   const p = currentSharedPerson;
   const body = document.getElementById('shared-detail-body');
@@ -6606,7 +7045,7 @@ function renderSharedDetail(){
   const statusColor = isEven ? 'var(--green)' : bal > 0 ? 'var(--green)' : 'var(--accent-soft)';
   const settles = getSettlements().filter(s=>s.person===p);
 
-  body.innerHTML = `
+  body.innerHTML = renderSharedCloseNotice(d.conn, p) + renderSharedLockedNotice(d, p) + `
     <div class="total-card" style="min-height:auto;padding:18px 20px;background:${bal>0?'linear-gradient(135deg,#8FE08C,#5DB863)':'var(--grad)'};">
       <p class="total-card-label">${statusTxt}</p>
       <div class="total-card-amount w-val" style="font-size:32px;color:${bal>0?'#0C1A24':'#fff'};">${isEven?'$0':'$'+fmt(Math.abs(bal))}</div>
