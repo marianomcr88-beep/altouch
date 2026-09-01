@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="46">
+<meta name="app-version" content="47">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -5117,10 +5117,7 @@ function openCloseMonthModal(){
         <span style="font-size:14px;font-weight:700;">${compartidos.length}</span>
       </div>` : ''}
     </div>
-    <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
-      <input type="checkbox" id="cm-settle" style="width:18px;height:18px;accent-color:var(--accent);">
-      <span style="font-size:12px;color:var(--text-dim);line-height:1.4;">También cerrar las cuentas compartidas (deja los balances con cada persona en cero)</span>
-    </label>
+    ${sharedCloseBlock()}
     <div style="background:rgba(255,178,101,.08);border:1px solid rgba(255,178,101,.28);border-radius:12px;padding:11px 13px;margin-bottom:16px;">
       <p style="font-size:11px;color:var(--accent-soft);line-height:1.5;">
         📸 Se guarda una foto de todos tus bolsillos con los saldos de hoy.
@@ -5132,6 +5129,66 @@ function openCloseMonthModal(){
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
     </div>`;
   document.getElementById('modal-settle').style.display='flex';
+}
+
+// Estado de las cuentas compartidas al momento de cerrar. Si alguien todavía
+// debe plata, cerrar borra esa deuda sin dejar rastro: el tilde arranca apagado
+// y con la advertencia a la vista. Si están a mano, arranca marcado.
+function sharedPendingList(){
+  const out = [];
+  try{
+    const bal = computeSharedBalances();
+    Object.keys(bal).forEach(p=>{
+      const b = bal[p];
+      if(Math.abs(b.balance) >= 1) out.push({persona:p, balance:b.balance});
+    });
+  }catch(e){}
+  return out;
+}
+
+function sharedCloseBlock(){
+  let personas = 0;
+  try{ personas = Object.keys(computeSharedBalances()).length; }catch(e){}
+  if(!personas) return '';
+
+  const pend = sharedPendingList();
+  const marcado = pend.length ? '' : 'checked';
+
+  const aviso = pend.length ? `
+    <div style="background:rgba(255,90,110,.10);border:1px solid rgba(255,90,110,.35);border-radius:12px;padding:11px 13px;margin-bottom:12px;">
+      <p style="font-size:11px;color:var(--red);line-height:1.5;">
+        ⚠️ No están a mano: ${pend.map(x=> x.balance>0
+            ? esc(x.persona)+' te debe $'+fmt(Math.abs(x.balance))
+            : 'le debés $'+fmt(Math.abs(x.balance))+' a '+esc(x.persona)).join(' · ')}.
+        Si cerrás las cuentas compartidas, esa deuda se borra y no queda registro.
+      </p>
+    </div>` : '';
+
+  return aviso + `
+    <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;">
+      <input type="checkbox" id="cm-settle" ${marcado} style="width:18px;height:18px;accent-color:var(--accent);">
+      <span style="font-size:12px;color:var(--text-dim);line-height:1.4;">También cerrar las cuentas compartidas (la lista se guarda en el archivo y los balances arrancan de cero)</span>
+    </label>`;
+}
+
+// Lista completa de gastos compartidos, de los dos lados, para archivar.
+// El archivo mensual sólo guardaba totales: los gastos que cargó la otra
+// persona no están en el historial personal de uno y se perdían al limpiar.
+function collectSharedMovements(){
+  const out = {};
+  try{
+    const bal = computeSharedBalances();
+    Object.keys(bal).forEach(p=>{
+      const d = bal[p];
+      out[p] = (d.movs||[]).map(m=>({
+        desc: m.desc, amount: Number(m.amount)||0,
+        date: m.date || m.at || null,
+        paidBy: m.paidBy || (m.byUid ? 'them' : 'me'),
+        locked: !!m.locked
+      }));
+    });
+  }catch(e){}
+  return out;
 }
 
 async function confirmCloseMonth(monthKey, label){
@@ -5162,6 +5219,10 @@ async function confirmCloseMonth(monthKey, label){
     });
   }catch(e){}
 
+  // La lista itemizada se guarda SIEMPRE, se limpie o no: es la única copia
+  // de los gastos que cargó la otra persona.
+  const sharedMovements = collectSharedMovements();
+
   // Foto de los saldos en el momento del cierre
   const snapshot = captureBalanceSnapshot();
 
@@ -5173,6 +5234,7 @@ async function confirmCloseMonth(monthKey, label){
     count: movs.length,
     byCat,
     sharedSummary,
+    sharedMovements,
     snapshot,
     movements: movs,
     settlements: settles,
@@ -5650,9 +5712,20 @@ function toggleMonthCard(i){
   const sharedRows = Object.keys(a.sharedSummary||{}).map(p=>{
     const s = a.sharedSummary[p];
     const txt = Math.abs(s.balance)<1 ? 'A mano' : s.balance>0 ? `${esc(p)} debía $${fmt(Math.abs(s.balance))}` : `Le debías $${fmt(Math.abs(s.balance))}`;
+    // Detalle de los movimientos compartidos de ese mes (incluye los que cargó
+    // la otra persona, que no están en el historial personal de uno).
+    const items = (a.sharedMovements && a.sharedMovements[p]) || [];
+    const detalle = items.length ? `
+      <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border);">
+        ${items.map(m=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
+          <span style="font-size:11px;color:var(--text-dim);">${m.paidBy==='me'?'Pagué yo':'Pagó '+esc(p)} · ${esc(m.desc||'Sin detalle')}</span>
+          <span style="font-size:11px;font-weight:700;white-space:nowrap;">$${fmt(m.amount)}</span>
+        </div>`).join('')}
+      </div>` : '';
     return `<div class="shared-mini" style="text-align:left;margin-bottom:7px;">
       <p class="sm-label">${esc(p)}</p>
       <p style="font-size:12px;margin-top:2px;">Total $${fmt(s.totalShared)} · ${txt}</p>
+      ${detalle}
     </div>`;
   }).join('');
 
@@ -6577,11 +6650,29 @@ function computeSharedBalances(){
   });
 
   // 2) Gastos compartidos locales (sin conexión establecida)
+  // El descarte por sharedKey no alcanza: esa marca se escribe DESPUÉS de que
+  // vuelve la nube, así que si la app se cierra en el medio queda un gasto sin
+  // marca cuya copia sí subió, y se contaba dos veces. Se descarta también por
+  // coincidencia exacta, emparejando de a uno para no tapar duplicados reales.
+  const usados = {};
+  const yaEnLaNube = (p, e) => {
+    const lista = (map[p] && map[p].movs) || [];
+    if(!usados[p]) usados[p] = new Set();
+    const i = lista.findIndex((m, idx) =>
+      !usados[p].has(idx) &&
+      (Number(m.amount)||0) === (Number(e.amount)||0) &&
+      String(m.desc||'') === String(e.desc||'') &&
+      String(m.date||'').slice(0,10) === String(e.date||'').slice(0,10));
+    if(i < 0) return false;
+    usados[p].add(i);
+    return true;
+  };
+
   getExpenses().filter(e=>e.sharedWith).forEach(e=>{
     const p = e.sharedWith;
     if(!map[p]) map[p] = {mine:0, theirs:0, settled:0, movs:[], conn:null, synced:false};
-    // Si ya vino por la nube, no duplicar
-    if(map[p].synced && e.sharedKey) return;
+    if(map[p].synced && e.sharedKey) return;      // caso normal
+    if(map[p].synced && yaEnLaNube(p, e)) return; // subió pero quedó sin marca
     if(e.paidBy === 'them') map[p].theirs += Number(e.amount)||0;
     else                    map[p].mine   += Number(e.amount)||0;
     map[p].movs.push(e);
