@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="47">
+<meta name="app-version" content="48">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -7076,6 +7076,110 @@ function renderSharedLockedNotice(d, person){
   </div>`;
 }
 
+// ── Cerrar la cuenta con una persona, sin depender del cierre de mes ─────
+// El cierre mensual ya limpia lo compartido, pero solo hacia adelante. Esto
+// permite arrancar de cero con alguien en cualquier momento, guardando la
+// lista antes de borrarla.
+function getSharedClosures(){ return JSON.parse(localStorage.getItem('nmclb_shared_closures')||'[]'); }
+function saveSharedClosures(l){ localStorage.setItem('nmclb_shared_closures', JSON.stringify(l)); }
+
+function renderSharedClosures(person){
+  const list = getSharedClosures().filter(c=>c.person===person);
+  if(!list.length) return '';
+  return `<div style="margin-bottom:16px;">
+    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:9px;">Cierres anteriores</p>
+    ${list.map(c=>`<div style="background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:12px 13px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <span style="font-size:12px;font-weight:700;">${esc(c.label||'Cierre')}</span>
+        <span style="font-size:11px;color:var(--text-dim);">${fmtDate(c.at)}</span>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:3px;">${c.movements.length} movimiento${c.movements.length!==1?'s':''} · total $${fmt(c.totalShared||0)}</p>
+      ${c.movements.map(m=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
+        <span style="font-size:11px;color:var(--text-dim);">${m.paidBy==='me'?'Pagué yo':'Pagó '+esc(person)} · ${esc(m.desc||'Sin detalle')}</span>
+        <span style="font-size:11px;font-weight:700;white-space:nowrap;">$${fmt(m.amount)}</span>
+      </div>`).join('')}
+    </div>`).join('')}
+  </div>`;
+}
+
+function openCloseSharedModal(person){
+  const d = computeSharedBalances()[person];
+  if(!d){ toast('No hay nada para cerrar'); return; }
+  const aMano = Math.abs(d.balance) < 1;
+  const deuda = d.balance > 0
+    ? esc(person)+' te debe $'+fmt(Math.abs(d.balance))
+    : 'le debés $'+fmt(Math.abs(d.balance))+' a '+esc(person);
+
+  document.getElementById('settle-title').textContent = '🤝 Cerrar cuenta con '+person;
+  document.getElementById('settle-body').innerHTML = `
+    <p style="font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">
+      Se guarda la lista completa acá abajo, en "Cierres anteriores", y el balance
+      con ${esc(person)} arranca de cero. Tus movimientos y tus bolsillos no se tocan.
+    </p>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:12px 13px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:12px;color:var(--text-dim);">Movimientos</span>
+        <span style="font-size:13px;font-weight:700;">${d.movs.length}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="font-size:12px;color:var(--text-dim);">Total entre los dos</span>
+        <span style="font-size:13px;font-weight:700;">$${fmt(d.totalShared)}</span>
+      </div>
+    </div>
+    ${aMano ? '' : `<div style="background:rgba(255,90,110,.10);border:1px solid rgba(255,90,110,.35);border-radius:12px;padding:11px 13px;margin-bottom:14px;">
+      <p style="font-size:11px;color:var(--red);line-height:1.5;">
+        ⚠️ No están a mano: ${deuda}. Si cerrás igual, esa deuda se borra y no queda registro del saldo pendiente.
+      </p>
+    </div>`}
+    <p style="font-size:11px;color:var(--text-dim);line-height:1.45;margin-bottom:14px;">
+      La lista se vacía también en el celular de ${esc(person)}, y le va a aparecer
+      un aviso para que decida si pone su balance en cero.
+    </p>
+    <div class="stack" style="margin-top:4px;">
+      <button class="btn ${aMano?'btn-green':'btn-accent'}" id="cs-btn" onclick="confirmCloseShared('${esc(person)}')">Cerrar cuenta</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
+    </div>`;
+  document.getElementById('modal-settle').style.display='flex';
+}
+
+async function confirmCloseShared(person){
+  const btn = document.getElementById('cs-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Cerrando…'; }
+  try{
+    const d = computeSharedBalances()[person];
+    if(!d){ closeModal('modal-settle'); return; }
+
+    // Guardar la lista ANTES de tocar nada
+    const closures = getSharedClosures();
+    closures.unshift({
+      id: Date.now(),
+      at: new Date().toISOString(),
+      person,
+      label: capitalize(new Date().toLocaleString('es-AR',{month:'long', year:'numeric'})),
+      totalShared: d.totalShared, mine: d.mine, theirs: d.theirs,
+      balance: d.balance, settled: d.settled,
+      movements: (d.movs||[]).map(m=>({
+        desc:m.desc, amount:Number(m.amount)||0, date:m.date||m.at||null,
+        paidBy:m.paidBy||'me', locked:!!m.locked
+      }))
+    });
+    saveSharedClosures(closures);
+
+    if(d.conn) await clearSharedForPair(d.conn, 'cuenta con '+person);
+    saveSettlements(getSettlements().filter(x=>x.person !== person));
+
+    closeModal('modal-settle');
+    refreshAllScreens();
+    renderShared();
+    renderSharedDetail();
+    toast('✓ Cuenta con '+person+' en cero');
+  }catch(e){
+    console.error(e);
+    if(btn){ btn.disabled=false; btn.textContent='Cerrar cuenta'; }
+    toast('No se pudo cerrar');
+  }
+}
+
 function renderSharedCloseNotice(conn, person){
   const info = getSharedClosePending(conn && conn.pairId);
   if(!info) return '';
@@ -7179,7 +7283,9 @@ function renderSharedDetail(){
       ${bal<0 ? '💸 Pagarle a '+esc(p) : '✓ Registrar que me pagó'}
     </button>` : ''}
 
-    <button class="btn btn-ghost btn-sm" style="margin-bottom:16px;" onclick="exportSharedPDF('${esc(p)}')">📄 Exportar resumen en PDF</button>
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:9px;" onclick="exportSharedPDF('${esc(p)}')">📄 Exportar resumen en PDF</button>
+    ${d.movs.length ? `<button class="btn btn-ghost btn-sm" style="margin-bottom:16px;" onclick="openCloseSharedModal('${esc(p)}')">🤝 Cerrar cuenta con ${esc(p)}</button>` : ''}
+    ${renderSharedClosures(p)}
 
     <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:9px;">Gastos compartidos</p>
     <div class="lwrap" style="margin-bottom:16px;">
