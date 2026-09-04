@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="48">
+<meta name="app-version" content="49">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -7083,23 +7083,52 @@ function renderSharedLockedNotice(d, person){
 function getSharedClosures(){ return JSON.parse(localStorage.getItem('nmclb_shared_closures')||'[]'); }
 function saveSharedClosures(l){ localStorage.setItem('nmclb_shared_closures', JSON.stringify(l)); }
 
+// Los cierres se muestran PLEGADOS: son historia, no la cuenta en curso.
+// Desplegados tapaban la pantalla y daban la sensación de que la lista vieja
+// seguía viva.
+const closuresOpen = {};
+function toggleClosure(id){
+  closuresOpen[id] = !closuresOpen[id];
+  renderSharedDetail();
+}
+
 function renderSharedClosures(person){
   const list = getSharedClosures().filter(c=>c.person===person);
   if(!list.length) return '';
   return `<div style="margin-bottom:16px;">
     <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:9px;">Cierres anteriores</p>
-    ${list.map(c=>`<div style="background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:12px 13px;margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-        <span style="font-size:12px;font-weight:700;">${esc(c.label||'Cierre')}</span>
-        <span style="font-size:11px;color:var(--text-dim);">${fmtDate(c.at)}</span>
-      </div>
-      <p style="font-size:11px;color:var(--text-dim);margin-top:3px;">${c.movements.length} movimiento${c.movements.length!==1?'s':''} · total $${fmt(c.totalShared||0)}</p>
-      ${c.movements.map(m=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
-        <span style="font-size:11px;color:var(--text-dim);">${m.paidBy==='me'?'Pagué yo':'Pagó '+esc(person)} · ${esc(m.desc||'Sin detalle')}</span>
-        <span style="font-size:11px;font-weight:700;white-space:nowrap;">$${fmt(m.amount)}</span>
-      </div>`).join('')}
-    </div>`).join('')}
+    ${list.map(c=>{
+      const abierto = !!closuresOpen[c.id];
+      return `<div style="background:var(--panel);border:1px solid var(--border);border-radius:13px;margin-bottom:8px;overflow:hidden;">
+      <button onclick="toggleClosure(${Number(c.id)||0})" style="width:100%;background:none;border:none;color:inherit;font-family:inherit;text-align:left;padding:12px 13px;cursor:pointer;display:block;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+          <span style="font-size:12px;font-weight:700;">${esc(c.label||'Cierre')}</span>
+          <span style="font-size:11px;color:var(--text-dim);">${fmtDate(c.at)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:3px;">
+          <span style="font-size:11px;color:var(--text-dim);">${c.movements.length} movimiento${c.movements.length!==1?'s':''} · total $${fmt(c.totalShared||0)}</span>
+          <span style="font-size:11px;color:var(--text-faint);">${abierto?'Ocultar ▲':'Ver detalle ▼'}</span>
+        </div>
+      </button>
+      ${abierto ? `<div style="padding:0 13px 12px;">
+        <div style="border-top:1px solid var(--border);padding-top:9px;">
+          ${c.movements.map(m=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
+            <span style="font-size:11px;color:var(--text-dim);">${m.paidBy==='me'?'Pagué yo':'Pagó '+esc(person)} · ${esc(m.desc||'Sin detalle')}</span>
+            <span style="font-size:11px;font-weight:700;white-space:nowrap;">$${fmt(m.amount)}</span>
+          </div>`).join('')}
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="deleteSharedClosure(${Number(c.id)||0})">Eliminar este cierre</button>
+      </div>` : ''}
+    </div>`;}).join('')}
   </div>`;
+}
+
+function deleteSharedClosure(id){
+  askConfirm('¿Eliminar este cierre guardado? Se pierde el detalle de esos movimientos.', ()=>{
+    saveSharedClosures(getSharedClosures().filter(c=>c.id!==id));
+    renderSharedDetail();
+    toast('Cierre eliminado');
+  }, 'Sí, eliminar');
 }
 
 function openCloseSharedModal(person){
