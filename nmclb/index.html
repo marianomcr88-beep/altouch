@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="49">
+<meta name="app-version" content="50">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -3180,7 +3180,12 @@ function renderPocketMovements(type){
   let movs = [];
 
   if(type==='cash'){
-    movs = all.filter(e=>e.source==='cash');
+    // El efectivo tiene su propio libro (cashHistory) que registra TODO lo que
+    // mueve el saldo: gastos, ajustes manuales, pagos de cuentas compartidas y
+    // ediciones. Antes acá se listaba getExpenses(), que se vacía al cerrar el
+    // mes y no incluye ajustes ni pagos: por eso la suma no cerraba.
+    renderCashLedger(el);
+    return;
   } else if(type==='digital'){
     movs = all.filter(e=>e.source && e.source.startsWith('digital:'));
   }
@@ -3191,6 +3196,71 @@ function renderPocketMovements(type){
   }
 
   el.innerHTML = movs.slice(0,20).map(e=>renderMovRow(e)).join('');
+  if(!valuesVisible) applyVisibility();
+}
+
+// Lista del bolsillo Efectivo: parte del libro real y lo reconcilia con el
+// saldo. Cada asiento que corresponde a un gasto conserva sus botones de
+// editar y borrar; los que no (ajustes, pagos compartidos) se muestran igual.
+function renderCashLedger(el){
+  const data = getWalletData();
+  const hist = Array.isArray(data.cashHistory) ? data.cashHistory : [];
+  const total = Number(data.cash)||0;
+
+  const gastos = getExpenses().filter(e=>e.source==='cash');
+  const usados = new Set();
+
+  const filas = hist.map(h=>{
+    const delta = Number(h.amount)||0;
+    const i = gastos.findIndex((e,idx)=>{
+      if(usados.has(idx)) return false;
+      const d = (e.type==='income' ? 1 : -1) * (Number(e.amount)||0);
+      return Math.abs(d - delta) < 0.5 && String(e.desc||'') === String(h.desc||'');
+    });
+    if(i >= 0){ usados.add(i); return {tipo:'gasto', exp:gastos[i]}; }
+    return {tipo:'asiento', h};
+  });
+
+  const suma    = hist.reduce((a,h)=>a+(Number(h.amount)||0), 0);
+  const inicial = total - suma;
+  const TOPE    = 40;
+  const visibles = filas.slice(0, TOPE);
+
+  if(!filas.length && Math.abs(inicial) < 1){
+    el.innerHTML = '<div class="empty-state" style="border:none;padding:22px;">Sin movimientos aún</div>';
+    return;
+  }
+
+  const filaAsiento = h => {
+    const v = Number(h.amount)||0;
+    const pos = v >= 0;
+    return `<div class="erow">
+      <div class="eicon" style="background:rgba(124,168,247,.13);">⚙️</div>
+      <div class="eleft">
+        <div class="edesc">${esc(h.desc||'Movimiento')}</div>
+        <div class="emeta"><span class="esrc-tag">💵 Efectivo</span><span>${fmtDate(h.date)}</span></div>
+      </div>
+      <div class="eamt val-sensitive ${pos?'pos':''}">${pos?'+':'−'}$${fmt(Math.abs(v))}</div>
+    </div>`;
+  };
+
+  // El saldo con el que arranca el libro: lo que había antes del primer asiento
+  // registrado (por ejemplo, lo que venía de meses ya cerrados).
+  const filaInicial = Math.abs(inicial) >= 1 ? `<div class="erow">
+      <div class="eicon" style="background:rgba(160,170,190,.13);">🏦</div>
+      <div class="eleft">
+        <div class="edesc">Saldo anterior</div>
+        <div class="emeta"><span>Lo que ya había antes de estos movimientos</span></div>
+      </div>
+      <div class="eamt val-sensitive ${inicial>=0?'pos':''}">${inicial>=0?'+':'−'}$${fmt(Math.abs(inicial))}</div>
+    </div>` : '';
+
+  const corte = filas.length > TOPE
+    ? `<div class="erow"><div class="eleft"><div class="emeta">Se muestran los ${TOPE} más recientes de ${filas.length}.</div></div></div>`
+    : '';
+
+  el.innerHTML = visibles.map(f => f.tipo==='gasto' ? renderMovRow(f.exp) : filaAsiento(f.h)).join('')
+               + corte + filaInicial;
   if(!valuesVisible) applyVisibility();
 }
 
