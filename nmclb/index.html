@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="50">
+<meta name="app-version" content="51">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -782,7 +782,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
     <div class="card" style="margin:16px 0 14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <p class="label" style="margin-bottom:4px;">Gastos mensuales</p>
+          <p class="label" style="margin-bottom:4px;" data-period-label>Gastos mensuales</p>
           <p style="font-size:24px;font-weight:800;font-family:var(--mono);color:var(--accent-soft);" class="w-val" id="w-spent-month">$0</p>
         </div>
         <div style="text-align:right;">
@@ -1007,7 +1007,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <p class="label" style="margin-bottom:4px;">Gastado este mes</p>
+          <p class="label" style="margin-bottom:4px;" data-period-label>Gastado este mes</p>
           <p style="font-size:24px;font-weight:800;color:var(--accent-soft);" class="w-val" id="h-spent">$0</p>
         </div>
         <div style="text-align:right;">
@@ -2930,6 +2930,7 @@ function initWallet(){
   const income = incomeThisMonth();
   setWalletField('w-spent-month',  '$'+fmt(spent));
   setWalletField('w-income-month', '$'+fmt(income));
+  applyOpenPeriodLabels();
 
   // Movimientos totales (últimos gastos)
   renderWalletMovements();
@@ -4191,6 +4192,7 @@ function initGastos(){
   const ie = document.getElementById('h-income');
   if(se){ se.textContent='$'+fmt(spent);  se.dataset.real='$'+fmt(spent); }
   if(ie){ ie.textContent='$'+fmt(income); ie.dataset.real='$'+fmt(income); }
+  applyOpenPeriodLabels();
   renderExpenseList();
   const tl = document.getElementById('trash-label');
   if(tl){ const n = trashCount(); tl.textContent = n ? 'Papelera ('+n+')' : 'Papelera'; }
@@ -6007,19 +6009,37 @@ function currentMonthKey(){
 }
 
 // Suma real de egresos del mes en curso
+// El período que cuenta es el que está SIN CERRAR, no el mes del calendario.
+// En esta app el mes termina cuando uno lo cierra a mano, no el día 1: filtrar
+// por mes calendario hacía que el 1° a la mañana todo diera $0 mientras la
+// lista de abajo seguía mostrando los movimientos de septiembre.
 function spentThisMonth(){
-  const mk = currentMonthKey();
   return getExpenses()
-    .filter(e => e.type !== 'income' && monthKeyOf(e.date) === mk)
+    .filter(e => e.type !== 'income')
     .reduce((s,e) => s + (Number(e.amount)||0), 0);
 }
 
-// Suma real de ingresos del mes en curso
 function incomeThisMonth(){
-  const mk = currentMonthKey();
   return getExpenses()
-    .filter(e => e.type === 'income' && monthKeyOf(e.date) === mk)
+    .filter(e => e.type === 'income')
     .reduce((s,e) => s + (Number(e.amount)||0), 0);
+}
+
+// Qué dice el rótulo: "este mes" sólo si todo lo abierto cae en el mes actual.
+// Si no, el período viene arrastrado de antes y conviene decirlo.
+function openPeriodLabel(){
+  const fechas = getExpenses().map(e=>e.date).filter(Boolean).sort();
+  if(!fechas.length) return 'Gastado este mes';
+  const mk = currentMonthKey();
+  if(monthKeyOf(fechas[0]) === mk) return 'Gastado este mes';
+  const d = new Date(fechas[0]);
+  const txt = d.toLocaleDateString('es-AR',{day:'2-digit', month:'short'});
+  return 'Gastado · sin cerrar desde el '+txt;
+}
+
+function applyOpenPeriodLabels(){
+  const txt = openPeriodLabel();
+  document.querySelectorAll('[data-period-label]').forEach(el=>{ el.textContent = txt; });
 }
 
 // ── Puente de compatibilidad ─────────────────────────────────────────────
