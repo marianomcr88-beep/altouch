@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="51">
+<meta name="app-version" content="52">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -677,6 +677,7 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
         <p class="at-sub">Sale plata</p>
       </button>
     </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:9px;" onclick="openTransferModal()">⇄ Transferir entre bolsillos</button>
 
     <!-- Accesos -->
     <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:22px 0 11px;">Accesos</p>
@@ -3188,7 +3189,10 @@ function renderPocketMovements(type){
     renderCashLedger(el);
     return;
   } else if(type==='digital'){
-    movs = all.filter(e=>e.source && e.source.startsWith('digital:'));
+    // Mismo criterio que efectivo: cada billetera tiene su propio historial,
+    // que es lo que realmente mueve su saldo (gastos, transferencias, ajustes).
+    renderDigitalLedger(el);
+    return;
   }
 
   if(!movs.length){
@@ -3200,7 +3204,73 @@ function renderPocketMovements(type){
   if(!valuesVisible) applyVisibility();
 }
 
-// Lista del bolsillo Efectivo: parte del libro real y lo reconcilia con el
+// Lista del bolsillo Digital: junta los historiales de todas las billeteras
+// y los reconcilia contra la suma de sus saldos.
+function renderDigitalLedger(el){
+  const accs = getAccounts('digital');
+  const total = accs.reduce((a,x)=>a+(Number(x.total)||0), 0);
+
+  const gastos = getExpenses().filter(e=>e.source && e.source.startsWith('digital:'));
+  const usados = new Set();
+
+  let filas = [];
+  accs.forEach(a=>{
+    (a.history||[]).forEach(h=>{
+      const delta = Number(h.amount)||0;
+      const i = gastos.findIndex((e,idx)=>{
+        if(usados.has(idx)) return false;
+        if(e.source !== 'digital:'+a.name) return false;
+        const d = (e.type==='income' ? 1 : -1) * (Number(e.amount)||0);
+        return Math.abs(d - delta) < 0.5 && String(e.desc||'') === String(h.desc||'');
+      });
+      if(i >= 0){ usados.add(i); filas.push({date:h.date, tipo:'gasto', exp:gastos[i]}); }
+      else filas.push({date:h.date, tipo:'asiento', h, cuenta:a.name});
+    });
+  });
+  filas.sort((x,y)=> new Date(y.date) - new Date(x.date));
+
+  const suma    = filas.reduce((a,f)=> a + (f.tipo==='gasto'
+                    ? (f.exp.type==='income'?1:-1)*(Number(f.exp.amount)||0)
+                    : (Number(f.h.amount)||0)), 0);
+  const inicial = total - suma;
+  const TOPE = 40;
+
+  if(!filas.length && Math.abs(inicial) < 1){
+    el.innerHTML = '<div class="empty-state" style="border:none;padding:22px;">Sin movimientos aún</div>';
+    return;
+  }
+
+  const filaAsiento = f => {
+    const v = Number(f.h.amount)||0, pos = v >= 0;
+    return `<div class="erow">
+      <div class="eicon" style="background:rgba(124,168,247,.13);">⚙️</div>
+      <div class="eleft">
+        <div class="edesc">${esc(f.h.desc||'Movimiento')}</div>
+        <div class="emeta"><span class="esrc-tag">📱 ${esc(f.cuenta)}</span><span>${fmtDate(f.h.date)}</span></div>
+      </div>
+      <div class="eamt val-sensitive ${pos?'pos':''}">${pos?'+':'−'}$${fmt(Math.abs(v))}</div>
+    </div>`;
+  };
+
+  const filaInicial = Math.abs(inicial) >= 1 ? `<div class="erow">
+      <div class="eicon" style="background:rgba(160,170,190,.13);">🏦</div>
+      <div class="eleft">
+        <div class="edesc">Saldo anterior</div>
+        <div class="emeta"><span>Lo que ya había antes de estos movimientos</span></div>
+      </div>
+      <div class="eamt val-sensitive ${inicial>=0?'pos':''}">${inicial>=0?'+':'−'}$${fmt(Math.abs(inicial))}</div>
+    </div>` : '';
+
+  const corte = filas.length > TOPE
+    ? `<div class="erow"><div class="eleft"><div class="emeta">Se muestran los ${TOPE} más recientes de ${filas.length}.</div></div></div>`
+    : '';
+
+  el.innerHTML = filas.slice(0,TOPE).map(f => f.tipo==='gasto' ? renderMovRow(f.exp) : filaAsiento(f)).join('')
+               + corte + filaInicial;
+  if(!valuesVisible) applyVisibility();
+}
+
+// Lista del bolsillo Efectivo: parte del libro real y lo reconcilia contra el
 // saldo. Cada asiento que corresponde a un gasto conserva sus botones de
 // editar y borrar; los que no (ajustes, pagos compartidos) se muestran igual.
 function renderCashLedger(el){
@@ -3924,6 +3994,57 @@ function confirmMovement(){
   }
 }
 
+// Mueve plata dentro de un bolsillo y deja el asiento en su historial.
+// Lo usan tanto los movimientos normales como las transferencias.
+// deltaARS va en pesos; signedOrig sólo se usa para cuentas en otra moneda,
+// donde el saldo se guarda en la moneda de la cuenta, no en pesos.
+function applyToPocket(dest, deltaARS, desc, signedOrig){
+  const signed = (signedOrig === undefined) ? deltaARS : signedOrig;
+  const ahora = new Date().toISOString();
+
+  if(dest === 'cash'){
+    const data = getWalletData();
+    data.cash = Math.max(0, data.cash + deltaARS);
+    data.cashHistory = data.cashHistory || [];
+    data.cashHistory.unshift({date:ahora, desc, amount:deltaARS});
+    saveAndSync('nmclb_wallet_data', data);
+    return true;
+  }
+  if(dest.startsWith('digital:')){
+    const accs = getAccounts('digital');
+    const idx = accs.findIndex(a=>a.name === dest.slice(8));
+    if(idx < 0) return false;
+    accs[idx].total = Math.max(0, accs[idx].total + deltaARS);
+    accs[idx].history = accs[idx].history || [];
+    accs[idx].history.unshift({date:ahora, desc, amount:deltaARS});
+    saveAccounts('digital', accs);
+    return true;
+  }
+  if(dest.startsWith('fx:')){
+    const accs = getAccounts('fx');
+    const idx = accs.findIndex(a=>a.name === dest.slice(3));
+    if(idx < 0) return false;
+    accs[idx].amount = Math.max(0, accs[idx].amount + signed);
+    accs[idx].history = accs[idx].history || [];
+    accs[idx].history.unshift({date:ahora, desc, amount:signed});
+    saveAccounts('fx', accs);
+    return true;
+  }
+  if(dest.startsWith('invest:')){
+    const accs = getAccounts('invest');
+    const idx = accs.findIndex(a=>a.name === dest.slice(7));
+    if(idx < 0) return false;
+    accs[idx].total = Math.max(0, (Number(accs[idx].total)||0) + deltaARS);
+    if(deltaARS >= 0) accs[idx].deposits   = (Number(accs[idx].deposits)||0)   + deltaARS;
+    else              accs[idx].withdrawals = (Number(accs[idx].withdrawals)||0) + Math.abs(deltaARS);
+    accs[idx].history = accs[idx].history || [];
+    accs[idx].history.unshift({date:ahora, desc, amount:deltaARS});
+    saveAccounts('invest', accs);
+    return true;
+  }
+  return false;
+}
+
 function finalizeMovement(dest, desc, amount, sharedWith){
   const isIncome = movType==='income';
   const signed   = isIncome ? amount : -amount;
@@ -3931,35 +4052,7 @@ function finalizeMovement(dest, desc, amount, sharedWith){
   const amountARS = isFx ? amount * (fxRates[selMovCurrency]||0) : amount;
   const deltaARS  = isIncome ? amountARS : -amountARS;
 
-  if(dest==='cash'){
-    const data = getWalletData();
-    data.cash = Math.max(0, data.cash + deltaARS);
-    data.cashHistory = data.cashHistory||[];
-    data.cashHistory.unshift({date:new Date().toISOString(), desc, amount:deltaARS});
-    saveAndSync('nmclb_wallet_data', data);
-  }
-  else if(dest.startsWith('digital:')){
-    const accName = dest.slice(8);
-    const accs = getAccounts('digital');
-    const idx = accs.findIndex(a=>a.name===accName);
-    if(idx>=0){
-      accs[idx].total = Math.max(0, accs[idx].total + deltaARS);
-      accs[idx].history = accs[idx].history||[];
-      accs[idx].history.unshift({date:new Date().toISOString(), desc, amount:deltaARS});
-      saveAccounts('digital', accs);
-    }
-  }
-  else if(dest.startsWith('fx:')){
-    const accName = dest.slice(3);
-    const accs = getAccounts('fx');
-    const idx = accs.findIndex(a=>a.name===accName);
-    if(idx>=0){
-      accs[idx].amount = Math.max(0, accs[idx].amount + signed);
-      accs[idx].history = accs[idx].history||[];
-      accs[idx].history.unshift({date:new Date().toISOString(), desc, amount:signed});
-      saveAccounts('fx', accs);
-    }
-  }
+  applyToPocket(dest, deltaARS, desc, signed);
 
   // Registrar el movimiento SIEMPRE (ingreso o egreso)
   const mov = {
@@ -4235,6 +4328,12 @@ function renderExpenseList(){
     let sts = getSettlements();
     if(fSrc) sts = sts.filter(x=>x.source===fSrc);
     rows = rows.concat(sts.map(x=>({ date:x.date, html:renderSettlementRow(x) })));
+
+    // Las transferencias tampoco son gasto ni ingreso, pero tienen que verse.
+    // Con filtro de origen se muestran si ese bolsillo es punta de la operación.
+    let trs = getTransfers();
+    if(fSrc) trs = trs.filter(x=>x.from===fSrc || x.to===fSrc);
+    rows = rows.concat(trs.map(x=>({ date:x.date, html:renderTransferRow(x) })));
   }
 
   rows.sort((a,b)=> new Date(b.date) - new Date(a.date));
@@ -4544,6 +4643,7 @@ async function decryptText(cipher, key){
 const SENSITIVE_FIELDS = {
   expenses:          ['desc','sharedWith'],
   settlements:       ['person'],
+  transfers:         ['desc','fromLabel','toLabel'],
   digital_accounts:  ['name'],
   invest_accounts:   ['name'],
   fx_accounts:       ['name'],
@@ -4554,6 +4654,7 @@ const SENSITIVE_FIELDS = {
 const NUMERIC_FIELDS = {
   expenses:          ['amount','originalAmount'],
   settlements:       ['amount'],
+  transfers:         ['amount'],
   digital_accounts:  ['total'],
   invest_accounts:   ['total','capital','interests','deposits','withdrawals'],
   fx_accounts:       ['amount'],
@@ -4730,7 +4831,7 @@ let syncing = false;
 let fbReady = false;
 
 const SYNC_KEYS = [
-  'nmclb_expenses','nmclb_settlements','nmclb_wallet_data',
+  'nmclb_expenses','nmclb_settlements','nmclb_transfers','nmclb_wallet_data',
   'nmclb_digital_accounts','nmclb_invest_accounts',
   'nmclb_fx_accounts','nmclb_crypto_accounts',
   'nmclb_total_includes','nmclb_trash','nmclb_archive'
@@ -7565,6 +7666,183 @@ function togglePaidBy(id){
 }
 
 // Todas las fuentes disponibles para pagar/cobrar
+// ══════════════════════════════════════════════════════════════════════════
+//  TRANSFERENCIAS ENTRE BOLSILLOS
+//  Mover plata de un lado a otro NO es un gasto ni un ingreso: el patrimonio
+//  no cambia, cambia de lugar. Por eso vive en su propia lista y no toca
+//  "gastado" ni "ingresos". Deja el asiento en el historial de los dos
+//  bolsillos, para que cada uno siga cuadrando por separado.
+// ══════════════════════════════════════════════════════════════════════════
+function getTransfers(){ return JSON.parse(localStorage.getItem('nmclb_transfers') || '[]'); }
+function saveTransfers(l){ saveAndSync('nmclb_transfers', l); }
+
+// Nombre legible de un bolsillo a partir de su clave ("digital:Mercado pago")
+function pocketLabel(key){
+  const k = String(key||'');
+  if(k === 'cash') return 'Efectivo';
+  if(k.startsWith('digital:')) return k.slice(8);
+  if(k.startsWith('fx:'))      return k.slice(3);
+  if(k.startsWith('invest:'))  return k.slice(7);
+  if(k.startsWith('crypto:'))  return 'Cripto';
+  return k || 'Bolsillo';
+}
+
+// Saldo actual de un bolsillo, para avisar si no alcanza
+function pocketBalance(key){
+  const k = String(key||'');
+  if(k === 'cash') return Number(getWalletData().cash)||0;
+  if(k.startsWith('digital:')){
+    const a = getAccounts('digital').find(x=>x.name===k.slice(8));
+    return a ? Number(a.total)||0 : 0;
+  }
+  if(k.startsWith('invest:')){
+    const a = getAccounts('invest').find(x=>x.name===k.slice(7));
+    return a ? Number(a.total)||0 : 0;
+  }
+  return null;   // moneda extranjera y cripto: no se compara en pesos
+}
+
+// Opciones de bolsillo para transferir. Se dejan afuera cripto y moneda
+// extranjera: ahí la conversión necesita cotización y es otro problema.
+function buildTransferOptions(){
+  let out = '<option value="cash">💵 Efectivo</option>';
+  getAccounts('digital').forEach(a=>{
+    out += `<option value="digital:${esc(a.name)}">📱 ${esc(a.name)}</option>`;
+  });
+  getAccounts('invest').forEach(a=>{
+    out += `<option value="invest:${esc(a.name)}">📈 ${esc(a.name)}</option>`;
+  });
+  return out;
+}
+
+function openTransferModal(preFrom){
+  const opts = buildTransferOptions();
+  const n = (opts.match(/<option/g)||[]).length;
+  if(n < 2){
+    toast('Necesitás al menos dos bolsillos para transferir');
+    return;
+  }
+  document.getElementById('mov-modal-title').textContent = '⇄ Transferir entre bolsillos';
+  document.getElementById('mov-modal-body').innerHTML = `
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:15px;">
+      La plata cambia de lugar, no entra ni sale. No se suma a gastos ni a ingresos.
+    </p>
+    <div class="field">
+      <label class="label">Desde</label>
+      <select class="input" id="tr-from">${opts}</select>
+    </div>
+    <div class="field">
+      <label class="label">Hacia</label>
+      <select class="input" id="tr-to">${opts}</select>
+    </div>
+    <div class="field">
+      <label class="label">Monto</label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--accent-soft);font-weight:700;">$</span>
+        <input class="input" type="number" inputmode="decimal" id="tr-amount" placeholder="0" style="padding-left:24px;">
+      </div>
+      <p id="tr-saldo" style="font-size:11px;color:var(--text-dim);margin-top:5px;"></p>
+    </div>
+    <div class="field">
+      <label class="label">Detalle (opcional)</label>
+      <input class="input" type="text" id="tr-desc" placeholder="Ej: depósito en el banco">
+    </div>
+    <button class="btn btn-green" id="tr-btn" onclick="confirmTransfer()">Transferir</button>`;
+
+  const from = document.getElementById('tr-from');
+  const to   = document.getElementById('tr-to');
+  if(preFrom) from.value = preFrom;
+  // Que no arranquen en el mismo bolsillo
+  if(to.value === from.value && to.options.length > 1){
+    to.selectedIndex = from.selectedIndex === 0 ? 1 : 0;
+  }
+  const verSaldo = ()=>{
+    const b = pocketBalance(from.value);
+    document.getElementById('tr-saldo').textContent =
+      b === null ? '' : 'Disponible en '+pocketLabel(from.value)+': $'+fmt(b);
+  };
+  from.addEventListener('change', verSaldo);
+  verSaldo();
+  document.getElementById('modal-mov').style.display = 'flex';
+}
+
+function confirmTransfer(){
+  const from   = document.getElementById('tr-from').value;
+  const to     = document.getElementById('tr-to').value;
+  const amount = parseFloat(document.getElementById('tr-amount').value);
+  const desc   = document.getElementById('tr-desc').value.trim();
+
+  if(from === to){ toast('Elegí dos bolsillos distintos'); return; }
+  if(!amount || amount <= 0){ toast('Ingresá un monto válido'); return; }
+
+  const saldo = pocketBalance(from);
+  if(saldo !== null && amount > saldo){
+    askConfirm('En '+pocketLabel(from)+' hay $'+fmt(saldo)+' y querés mover $'+fmt(amount)+
+               '. ¿Lo hacemos igual? El saldo va a quedar en cero.',
+      ()=>doTransfer(from, to, amount, desc), 'Sí, transferir');
+    return;
+  }
+  doTransfer(from, to, amount, desc);
+}
+
+function doTransfer(from, to, amount, desc){
+  const etiqDesde = pocketLabel(from);
+  const etiqHacia = pocketLabel(to);
+  const detalle   = desc || 'Transferencia';
+
+  // Primero se descuenta del origen y después se suma al destino. Si el
+  // destino no existiera, se devuelve lo descontado para no evaporar plata.
+  const salida = applyToPocket(from, -amount, detalle+' → '+etiqHacia);
+  if(!salida){ toast('No se encontró el bolsillo de origen'); return; }
+
+  const entrada = applyToPocket(to, amount, detalle+' ← '+etiqDesde);
+  if(!entrada){
+    applyToPocket(from, amount, 'Reversión: '+detalle);
+    toast('No se encontró el bolsillo de destino');
+    return;
+  }
+
+  const list = getTransfers();
+  list.unshift({
+    id: Date.now(),
+    date: new Date().toISOString(),
+    from, to,
+    fromLabel: etiqDesde, toLabel: etiqHacia,
+    amount, desc: detalle
+  });
+  saveTransfers(list);
+
+  closeModal('modal-mov');
+  refreshAllScreens();
+  toast('✓ $'+fmt(amount)+' de '+etiqDesde+' a '+etiqHacia);
+}
+
+function deleteTransfer(id){
+  askConfirm('¿Deshacer esta transferencia? La plata vuelve al bolsillo de origen.', ()=>{
+    const list = getTransfers();
+    const t = list.find(x=>x.id===id);
+    if(!t){ toast('No se encontró'); return; }
+    applyToPocket(t.to,   -t.amount, 'Reversión: '+(t.desc||'Transferencia'));
+    applyToPocket(t.from,  t.amount, 'Reversión: '+(t.desc||'Transferencia'));
+    saveTransfers(list.filter(x=>x.id!==id));
+    refreshAllScreens();
+    toast('Transferencia deshecha');
+  }, 'Sí, deshacer');
+}
+
+// Fila de transferencia para el historial
+function renderTransferRow(t){
+  return `<div class="erow">
+    <div class="eicon" style="background:rgba(124,168,247,.15);">⇄</div>
+    <div class="eleft">
+      <div class="edesc">${esc(t.desc||'Transferencia')}</div>
+      <div class="emeta"><span class="esrc-tag">${esc(t.fromLabel||pocketLabel(t.from))} → ${esc(t.toLabel||pocketLabel(t.to))}</span><span>${fmtDate(t.date)}</span></div>
+    </div>
+    <div class="eamt val-sensitive" style="color:var(--text-dim);">$${fmt(t.amount)}</div>
+    <button class="edel" onclick="deleteTransfer(${Number(t.id)||0})" title="Deshacer">✕</button>
+  </div>`;
+}
+
 function buildAllSourceOptions(){
   let out = '<optgroup label="Pesos"><option value="cash">💵 Efectivo</option>';
   getAccounts('digital').forEach(a=>{
