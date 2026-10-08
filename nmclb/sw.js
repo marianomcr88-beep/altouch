@@ -1,5 +1,5 @@
 // NMCLB Service Worker — Altouch
-const CACHE = 'nmclb-v51';
+const CACHE = 'nmclb-v52';
 const ASSETS = [
   './',
   './index.html',
@@ -32,3 +32,4 @@ self.addEventListener('activate', (e) => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
