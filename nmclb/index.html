@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="52">
+<meta name="app-version" content="53">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -4277,6 +4277,8 @@ const CATS = [
 let selGCat = 'otro';
 
 function initGastos(){
+  const recuperados = recoverLostSettlements();
+  if(recuperados) setTimeout(()=>toast('✓ '+recuperados+' pago'+(recuperados>1?'s':'')+' recuperado'+(recuperados>1?'s':'')+' en el historial'), 600);
   buildGFilterSelect();
   buildGSourceFilter();
   const spent  = spentThisMonth();
@@ -4351,6 +4353,71 @@ function renderExpenseList(){
 }
 
 // Fila de pago/cobro de cuenta compartida (transferencia, no gasto)
+// ── Recuperación de pagos borrados por un cierre anterior ───────────────
+// Hasta la v52, cerrar la cuenta con alguien BORRABA los pagos registrados.
+// La plata sí había salido del bolsillo, así que el asiento quedó en el libro
+// de la billetera, pero la fila desapareció del Historial. Acá se reconstruyen
+// esos pagos a partir del libro, marcados como cerrados: no cambian ningún
+// saldo ni balance, sólo devuelven la fila al Historial. Corre una sola vez.
+const RECOVER_FLAG = 'nmclb_settlementsRecovered_v53';
+
+function recoverLostSettlements(){
+  if(localStorage.getItem(RECOVER_FLAG)) return 0;
+  try{
+    const mismoDia = (a,b)=> String(a||'').slice(0,10) === String(b||'').slice(0,10);
+    const settles  = getSettlements();
+    const expenses = getExpenses();
+
+    // Libros donde el monto está en pesos: efectivo y billeteras digitales
+    const libros = [{src:'cash', hist:(getWalletData().cashHistory)||[]}];
+    getAccounts('digital').forEach(a=>{
+      libros.push({src:'digital:'+a.name, hist:a.history||[]});
+    });
+
+    const nuevos = [];
+    libros.forEach(({src, hist})=>{
+      hist.forEach(h=>{
+        const desc = String(h.desc||'');
+        const m = desc.match(/^(Pago a|Cobro de) (.+)$/);
+        if(!m) return;
+        const persona = m[2];
+        const delta   = Number(h.amount)||0;
+        if(!delta) return;
+
+        // En un pago, el libro se mueve al revés que el registro del saldo
+        const amount = -delta;
+
+        // Ya existe como pago registrado
+        if(settles.some(x=> x.person===persona &&
+             Math.abs((Number(x.amount)||0) - amount) < 0.5 &&
+             mismoDia(x.date, h.date))) return;
+        // O es un gasto común que el usuario llamó así
+        if(expenses.some(e=> String(e.desc||'')===desc &&
+             Math.abs((Number(e.amount)||0) - Math.abs(delta)) < 0.5 &&
+             mismoDia(e.date, h.date))) return;
+        // O ya lo recuperamos en esta misma pasada
+        if(nuevos.some(x=> x.person===persona &&
+             Math.abs(x.amount - amount) < 0.5 &&
+             mismoDia(x.date, h.date))) return;
+
+        nuevos.push({
+          id: new Date(h.date||Date.now()).getTime() + nuevos.length,
+          date: h.date || new Date().toISOString(),
+          person: persona,
+          amount, source: src,
+          closedAt: new Date().toISOString(),
+          recovered: true
+        });
+      });
+    });
+
+    localStorage.setItem(RECOVER_FLAG, '1');
+    if(!nuevos.length) return 0;
+    saveSettlements(settles.concat(nuevos));
+    return nuevos.length;
+  }catch(e){ console.error('recoverLostSettlements', e); return 0; }
+}
+
 function renderSettlementRow(x){
   const iPaid  = Number(x.amount) > 0;             // >0 = le pagué yo
   const amount = Math.abs(Number(x.amount)||0);
@@ -4365,7 +4432,7 @@ function renderSettlementRow(x){
     <div class="eicon cat-settle">🤝</div>
     <div class="eleft">
       <div class="edesc">${iPaid ? 'Pago a ' : 'Cobro de '}${esc(x.person)}</div>
-      <div class="emeta"><span class="esrc-tag">${srcLabel}</span><span class="esrc-tag">Saldo compartido</span><span>${fmtDate(x.date)}</span></div>
+      <div class="emeta"><span class="esrc-tag">${srcLabel}</span><span class="esrc-tag">${x.closedAt ? 'Cuenta cerrada' : 'Saldo compartido'}</span><span>${fmtDate(x.date)}</span></div>
     </div>
     <div class="eamt val-sensitive ${iPaid?'':'pos'}">${iPaid?'-':'+'}$${fmt(amount)}</div>
     <button class="edel" onclick="deleteSettlement(${Number(x.id)||0})" title="Eliminar">✕</button>
@@ -5421,6 +5488,11 @@ async function confirmCloseMonth(monthKey, label){
   // Limpiar el mes en curso
   saveExpenses([]);
   saveTrash([]);   // la papelera se vacía con el cierre
+
+  // Los pagos ya cerrados quedaron guardados en esta entrada del archivo
+  // (settlements) y en su cierre de cuenta, así que el mes nuevo arranca sin
+  // ellos aunque no se marque la casilla de compartidos.
+  saveSettlements(getSettlements().filter(x=>!x.closedAt));
 
   if(alsoSettle){
     saveSettlements([]);
@@ -6869,8 +6941,10 @@ function computeSharedBalances(){
     map[p].movs.push(e);
   });
 
-  // 3) Pagos entre las partes
-  settles.forEach(s=>{
+  // 3) Pagos entre las partes.
+  // Los marcados como cerrados quedaron saldados en un cierre anterior: siguen
+  // existiendo para el Historial, pero no entran más en este balance.
+  settles.filter(s=>!s.closedAt).forEach(s=>{
     if(!map[s.person]) map[s.person] = {mine:0, theirs:0, settled:0, movs:[], conn:null, synced:false};
     map[s.person].settled += s.amount;
   });
@@ -7381,12 +7455,24 @@ async function confirmCloseShared(person){
       movements: (d.movs||[]).map(m=>({
         desc:m.desc, amount:Number(m.amount)||0, date:m.date||m.at||null,
         paidBy:m.paidBy||'me', locked:!!m.locked
-      }))
+      })),
+      payments: getSettlements().filter(x=>x.person===person && !x.closedAt)
+        .map(x=>({date:x.date, amount:Number(x.amount)||0, source:x.source||''}))
     });
     saveSharedClosures(closures);
 
     if(d.conn) await clearSharedForPair(d.conn, 'cuenta con '+person);
-    saveSettlements(getSettlements().filter(x=>x.person !== person));
+
+    // Los pagos NO se borran: se marcan como cerrados. Borrarlos los hacía
+    // desaparecer del Historial aunque la plata sí hubiera salido del bolsillo
+    // (el asiento queda en el libro de la billetera). Marcados, dejan de
+    // contar para el balance pero se siguen viendo hasta cerrar el mes.
+    const marcaCierre = closures[0].id;
+    saveSettlements(getSettlements().map(x =>
+      (x.person === person && !x.closedAt)
+        ? {...x, closedAt: new Date().toISOString(), closureId: marcaCierre}
+        : x
+    ));
 
     closeModal('modal-settle');
     refreshAllScreens();
