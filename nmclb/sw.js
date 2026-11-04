@@ -1,5 +1,5 @@
 // NMCLB Service Worker — Altouch
-const CACHE   = 'nmclb-v57';
+const CACHE   = 'nmclb-v58';
 const PREFIJO = 'nmclb-';          // sólo se tocan los caches propios
 const ASSETS  = [
   './',

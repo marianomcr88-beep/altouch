@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="57">
+<meta name="app-version" content="58">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -8758,10 +8758,15 @@ function updateSettlePreview(){
 // ══════════════════════════════════════════════════════════════════════════
 const CONTACT_EMAIL = 'altoquesolucionesdebolsillo@gmail.com';
 
+// Manual de uso. Se escribe a mano: cada cambio de funcionalidad tiene que
+// venir con su actualización acá, o el manual queda contando una app vieja.
+// Última revisión: v58.
 const MANUAL = [
   {
     icon:'🏠', title:'Inicio',
-    body:'Dos botones grandes: <b>Ingreso</b> cuando entra plata y <b>Egreso</b> cuando sale. Abajo, los accesos a la billetera, el historial y los gastos compartidos. El ojito de arriba oculta todos los montos si estás con gente al lado.'
+    body:'Dos botones grandes: <b>Ingreso</b> cuando entra plata y <b>Egreso</b> cuando sale. Debajo, <b>Transferir entre bolsillos</b> para mover plata de un lado a otro.<br><br>' +
+         'Más abajo, los accesos: <b>Gastos fijos</b> (con lo que te falta pagar este mes), tu <b>billetera</b>, el <b>historial</b> y los <b>gastos compartidos</b>.<br><br>' +
+         'El ojito de arriba oculta todos los montos, por si estás con gente al lado.'
   },
   {
     icon:'↓', title:'Registrar un ingreso',
@@ -8769,15 +8774,34 @@ const MANUAL = [
   },
   {
     icon:'↑', title:'Registrar un egreso',
-    body:'Igual que el ingreso, pero además elegís la categoría. Si marcás <b>Compartido con</b>, el gasto se divide 50/50 con la persona que elijas.'
+    body:'Igual que el ingreso, pero además elegís la categoría y de qué bolsillo sale.<br><br>' +
+         'Si elegís <b>Compartido con</b>, el gasto se reparte con esa persona según el porcentaje que acordaron (50/50 si no lo cambiaron).<br><br>' +
+         'Si la descripción coincide con uno de tus <b>gastos fijos</b>, la app lo marca como pagado sola y te avisa.'
   },
   {
     icon:'🎙️', title:'Cargar por voz',
     body:'Tocás el micrófono y dictás, por ejemplo: <i>"quince mil supermercado con Mercado Pago"</i>. La app completa el monto, la categoría y la cuenta. Siempre revisás antes de confirmar.'
   },
   {
+    icon:'📌', title:'Gastos fijos',
+    body:'Tu ayuda memoria de lo que pagás todos los meses. Armás la lista una vez —alquiler, servicios, impuestos, seguros— y cada mes ves qué ya pagaste y qué falta. Podés arrancar con una lista sugerida y ajustarla.<br><br>' +
+         '<b>Dos formas de marcarlos.</b> Con el botón <b>Pagar</b> se abre el egreso ya completo y queda marcado al confirmar. O cargás el egreso como siempre: si la descripción coincide con un gasto fijo, la app lo reconoce y lo marca sola.<br><br>' +
+         'Si a veces lo anotás con otro nombre (por ejemplo <i>EPE</i> en vez de <i>Luz</i>), agregalo en <b>También lo anoto como</b>. Los de débito automático aparecen igual, para que te acuerdes de chequear que se hayan descontado.<br><br>' +
+         'Los que no son mensuales (bimestrales, anuales) pasan a <b>No vencen este mes</b> cuando no les toca. Tocando cualquiera podés editarlo, marcarlo a mano o volverlo a pendiente.<br><br>' +
+         'Al cerrar el mes la lista vuelve a cero y en el archivo queda qué se pagó.'
+  },
+  {
+    icon:'⇄', title:'Transferir entre bolsillos',
+    body:'Para cuando la plata cambia de lugar sin entrar ni salir: depositar efectivo en el banco, pasar de Mercado Pago a una inversión, sacar del cajero.<br><br>' +
+         'Elegís desde dónde, hacia dónde y cuánto. Se descuenta de un bolsillo y se suma al otro en un solo paso. <b>No cuenta como gasto ni como ingreso</b>, porque tu plata total no cambió.<br><br>' +
+         'Aparece en el historial con ⇄ y en el libro de cada bolsillo. Si te equivocaste, la ✕ la deshace y la plata vuelve.<br><br>' +
+         'Funciona entre efectivo, billeteras digitales e inversiones. Para pasar a dólares o cripto, registralo como una compra.'
+  },
+  {
     icon:'👛', title:'Mi billetera',
-    body:'El total de todo lo que tenés, dividido en cinco bolsillos: efectivo, billeteras digitales, inversiones, moneda extranjera y cripto. Los chips de arriba te dejan sumar o no cada bolsillo al total.'
+    body:'El total de todo lo que tenés, dividido en cinco bolsillos: efectivo, billeteras digitales, inversiones, moneda extranjera y cripto. Los chips de arriba te dejan sumar o no cada bolsillo al total.<br><br>' +
+         'Entrando a <b>Efectivo</b> o <b>Digital</b> ves el libro de ese bolsillo: todo lo que movió el saldo —gastos, ingresos, pagos, transferencias, ajustes y correcciones—. Sumado de arriba abajo da el total. La última fila, <b>Saldo anterior</b>, es lo que ya tenías antes de esos movimientos.<br><br>' +
+         'Si el número no coincide con la realidad, usá <b>Ajustar saldo manualmente</b>: queda anotado como ajuste.'
   },
   {
     icon:'💱', title:'Moneda extranjera y cripto',
@@ -8789,30 +8813,44 @@ const MANUAL = [
   },
   {
     icon:'🤝', title:'Gastos compartidos',
-    body:'Te conectás con alguien por email desde <b>Compartido</b>. Los gastos que marquen como compartidos se dividen 50/50 y ambos ven el mismo balance en tiempo real. La app te dice quién le debe a quién.'
+    body:'Te conectás con alguien por email desde <b>Compartido</b>. Los gastos que marquen como compartidos los ven los dos en tiempo real, y la app les dice quién le debe a quién.<br><br>' +
+         '<b>El reparto se ajusta</b> con la barra de la pantalla de cada persona: 50/50, 60/40, lo que acuerden. El cambio lo ven los dos.<br><br>' +
+         'Podés editar o borrar los gastos que cargaste vos; los de la otra persona los edita ella. Al editar o borrar, tu bolsillo se corrige solo.<br><br>' +
+         '<b>Cerrar la cuenta con alguien</b> deja el balance en cero cuando quieran, sin esperar al cierre de mes. La lista queda guardada en <b>Cierres anteriores</b>, y a la otra persona le llega un aviso para que decida si también pone su balance en cero.'
   },
   {
     icon:'💸', title:'Saldar una deuda',
-    body:'Desde el detalle de la persona tocás el botón de pagar. Podés saldar todo o una parte, y elegir de qué bolsillo sale — incluso pagando con dólares o cripto: la app hace la conversión y descuenta las unidades correctas.'
+    body:'Desde la pantalla de la persona tocás <b>Pagarle a…</b> (o <b>Registrar que me pagó</b>). Podés saldar todo o una parte, y elegir de qué bolsillo sale — incluso con dólares o cripto: la app hace la conversión y descuenta las unidades correctas.<br><br>' +
+         'Los pagos aparecen arriba, en <b>Pagos entre ustedes</b>, y también en el historial. Si te equivocaste de monto o de bolsillo, el ✏️ lo corrige: devuelve lo que había movido y aplica lo nuevo. Los pagos hechos en dólares o cripto no se editan; se eliminan (las unidades vuelven) y se cargan de nuevo.<br><br>' +
+         'Un pago no cuenta como gasto del mes: el gasto ya se contó cuando lo cargaron.'
   },
   {
     icon:'📊', title:'Historial',
-    body:'Todos tus movimientos, filtrables por categoría y por origen. Cada uno se puede editar o borrar, y la billetera se recalcula sola.'
-  },
-  {
-    icon:'📌', title:'Gastos fijos',
-    body:'Tu ayuda memoria de lo que pagás todos los meses. Armás la lista una vez —alquiler, servicios, impuestos, seguros— y cada mes ves qué ya pagaste y qué falta.<br><br>' +
-         '<b>Dos formas de marcarlos.</b> Con el botón <b>Pagar</b> se abre el egreso ya completo y queda marcado al confirmar. O cargás el egreso como siempre: si la descripción coincide con un gasto fijo, la app lo reconoce y lo marca sola.<br><br>' +
-         'Si a veces lo anotás con otro nombre (por ejemplo <i>EPE</i> en vez de <i>Luz</i>), agregalo en <b>También lo anoto como</b>. Los de débito automático aparecen igual, para que te acuerdes de chequear que se hayan descontado.<br><br>' +
-         'Al cerrar el mes la lista vuelve a cero y en el archivo queda qué se pagó.'
+    body:'Todos tus movimientos, filtrables por categoría y por origen. Cada uno se puede editar o borrar, y el bolsillo se corrige solo.<br><br>' +
+         'También aparecen los pagos entre ustedes (🤝) y las transferencias (⇄). Se ven, pero no suman a lo gastado ni a los ingresos.<br><br>' +
+         'Arriba, <b>lo gastado</b> es todo lo que todavía no cerraste. Si el mes cambió y no cerraste el anterior, te lo avisa: <i>"sin cerrar desde el…"</i>.'
   },
   {
     icon:'📅', title:'Cerrar el mes',
-    body:'Archiva los movimientos del mes y deja el contador en cero. Guarda una foto de los saldos de todos tus bolsillos en ese momento, con las cotizaciones del día. Los saldos actuales no se tocan.'
+    body:'En esta app el mes termina cuando lo cerrás vos, no el día 1. Cerrar archiva los movimientos y deja el contador en cero. Guarda una foto de los saldos de todos tus bolsillos con las cotizaciones del día. Los saldos no se tocan.<br><br>' +
+         'Antes de cerrar te avisa si quedaron <b>gastos fijos sin pagar</b>, y te ofrece cerrar también las <b>cuentas compartidas</b>: la casilla viene marcada si están a mano, y desmarcada con una advertencia si alguien todavía debe plata.<br><br>' +
+         'En el archivo queda todo: tus movimientos, la lista completa de gastos compartidos (incluidos los que cargó la otra persona) y qué gastos fijos se pagaron.'
   },
   {
     icon:'🗑️', title:'Papelera',
-    body:'Lo que borrás queda 30 días, o hasta que cierres el mes. Podés restaurarlo y el dinero vuelve al bolsillo de donde salió.'
+    body:'Lo que borrás —movimientos, pagos, gastos compartidos— queda 30 días, o hasta que cierres el mes. Podés restaurarlo y el dinero vuelve al bolsillo de donde salió.'
+  },
+  {
+    icon:'☝️', title:'Huella y bloqueo',
+    body:'Se activa desde tu perfil, en <b>Huella / Face ID</b>. La primera vez que entres con la contraseña, la app te pide la huella para enlazarla con tu clave de cifrado. De ahí en adelante entrás sólo con la huella.<br><br>' +
+         'Si la app queda en segundo plano más de 15 segundos, al volver te pide la huella de nuevo.<br><br>' +
+         'Si aparece el cartel <b>Sincronización pausada</b>, tocá <b>Ingresar contraseña</b> una vez: lo de tu celular está completo, pero para sincronizar con la nube hace falta la clave.'
+  },
+  {
+    icon:'📦', title:'Copia de seguridad',
+    body:'Desde tu perfil, <b>Exportar backup</b> baja un archivo con todos tus datos; <b>Importar backup</b> los recupera.<br><br>' +
+         'Cuando hay una versión nueva de la app, te ofrece bajar la copia antes de actualizar y te dice cuándo hiciste la última. Conviene hacerla cada tanto.<br><br>' +
+         'El backup guarda tus datos, no tu contraseña: para eso está la frase de 12 palabras.'
   },
   {
     icon:'🔐', title:'Tus datos',
@@ -8832,7 +8870,7 @@ const MANUAL = [
          '<b>Cómo se guarda:</b> los montos, descripciones y nombres se cifran en tu dispositivo antes de subirse. ' +
          'En el servidor quedan como texto ilegible. Ni el creador de la app ni Google pueden leerlos.<br><br>' +
          '<b>Con quién se comparte:</b> con nadie. Solo los gastos que marques como compartidos son visibles ' +
-         'para la persona que elijas, y únicamente para ella.<br><br>' +
+         'para la persona que elijas, y únicamente para ella: se cifran con una clave que tienen sólo ustedes dos.<br><br>' +
          '<b>Borrar todo:</b> desde tu perfil, con "Borrar todo y empezar de cero". Se elimina de tu dispositivo y del servidor.<br><br>' +
          'La app no tiene publicidad, no vende datos y no hace seguimiento de tu actividad.'
   },
