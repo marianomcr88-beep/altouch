@@ -8,12 +8,25 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="53">
+<meta name="app-version" content="56">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Tipografías alojadas en el propio sitio (carpeta fonts/). Antes venían
+     de Google en cada arranque: si Google tardaba, la app quedaba en el splash.
+     Ahora quedan cacheadas por el service worker como el resto de la app.
+     Subconjunto latino: cubre todo el español (ñ, tildes, ¿¡) y las flechas. -->
+<link rel="preload" href="./fonts/mplus-rounded-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/mplus-rounded-700.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:400;font-display:swap;src:url('./fonts/mplus-rounded-400.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:500;font-display:swap;src:url('./fonts/mplus-rounded-500.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:700;font-display:swap;src:url('./fonts/mplus-rounded-700.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'M PLUS Rounded 1c';font-style:normal;font-weight:800;font-display:swap;src:url('./fonts/mplus-rounded-800.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url('./fonts/jetbrains-mono-400.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:600;font-display:swap;src:url('./fonts/jetbrains-mono-600.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url('./fonts/jetbrains-mono-700.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+</style>
 <style>
 :root{
   --bg-0:#0C1A24;--bg-1:#1A2B3C;--bg-2:#22384B;
@@ -132,6 +145,23 @@ h2{font-size:20px;font-weight:700;}
 .nt-icon{width:40px;height:40px;border-radius:12px;background:var(--panel-strong);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .nt-title{font-size:14px;font-weight:700;}
 .nt-sub{font-size:11px;color:var(--text-dim);margin-top:1px;}
+/* Gastos fijos */
+.nt-bar{height:4px;border-radius:3px;background:rgba(255,255,255,.10);overflow:hidden;margin-top:7px;}
+.nt-bar>i{display:block;height:100%;background:var(--grad);border-radius:3px;transition:width .3s;}
+.fx-row{display:flex;align-items:center;gap:11px;padding:12px 13px;border-bottom:1px solid var(--border);}
+.fx-row:last-child{border-bottom:none;}
+.fx-main{flex:1;min-width:0;cursor:pointer;}
+.fx-name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fx-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;align-items:center;}
+.fx-tag{font-size:10px;font-weight:600;background:var(--panel-strong);border-radius:7px;padding:2px 7px;color:var(--text-dim);}
+.fx-tag.warn{background:rgba(255,90,110,.16);color:#FF8A98;}
+.fx-tag.soon{background:rgba(255,178,101,.16);color:var(--accent-soft);}
+.fx-tag.auto{background:rgba(124,168,247,.16);color:#9DB9F7;}
+.fx-amt{font-family:var(--mono);font-size:13px;font-weight:700;white-space:nowrap;}
+.fx-pay{background:var(--grad);border:none;color:#fff;font-family:inherit;font-weight:700;font-size:12px;border-radius:10px;padding:8px 13px;cursor:pointer;flex-shrink:0;}
+.fx-done .fx-name{color:var(--text-dim);}
+.fx-check{width:26px;height:26px;border-radius:50%;background:rgba(127,201,122,.18);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;}
+.fx-sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:18px 0 9px;}
 .cats{display:flex;flex-wrap:wrap;gap:6px;}
 .cbt{border:1px solid var(--border);background:var(--panel-strong);color:var(--text-dim);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
 .cbt.sel{background:var(--grad);border-color:transparent;color:#fff;}
@@ -682,6 +712,15 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
     <!-- Accesos -->
     <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:22px 0 11px;">Accesos</p>
     <div class="stack" style="gap:9px;">
+      <button class="nav-tile" onclick="go('s-fixed')">
+        <span class="nt-icon">📌</span>
+        <div style="flex:1;text-align:left;min-width:0;">
+          <p class="nt-title">Gastos fijos</p>
+          <p class="nt-sub" id="nt-fixed-sub">Tu ayuda memoria del mes</p>
+          <div class="nt-bar" id="nt-fixed-bar" style="display:none;"><i style="width:0%"></i></div>
+        </div>
+        <span style="font-size:18px;color:var(--text-faint);">›</span>
+      </button>
       <button class="nav-tile" onclick="go('s-wallet')">
         <span class="nt-icon">👛</span>
         <div style="flex:1;text-align:left;">
@@ -1086,6 +1125,19 @@ option{background:var(--bg-1);color:var(--text);padding:6px;}
   <!-- ══════════════════════════════════════════
        PANTALLA — PAPELERA
   ══════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════
+       PANTALLA — GASTOS FIJOS
+  ══════════════════════════════════════════ -->
+  <section class="screen" id="s-fixed">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <button onclick="go('s-home')" style="background:var(--panel);border:1px solid var(--border);width:38px;height:38px;border-radius:10px;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">‹</button>
+      <h2 style="flex:1;">📌 Gastos fijos</h2>
+      <button onclick="openFixedEditor()" style="background:var(--panel);border:1px solid var(--border);border-radius:10px;font-size:12px;font-weight:700;color:var(--accent-soft);padding:9px 12px;cursor:pointer;font-family:inherit;">＋ Agregar</button>
+    </div>
+    <div id="fixed-body"></div>
+    <div class="appfoot"><svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="atg-f" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB265"/><stop offset=".55" stop-color="#FF6B35"/><stop offset="1" stop-color="#FF3D57"/></linearGradient></defs><circle cx="19" cy="26" r="5.5" fill="url(#atg-f)"/><path d="M16.92 14.18 A12 12 0 1 1 16.92 37.82" stroke="url(#atg-f)" stroke-width="3.4" stroke-linecap="round"/><path d="M15.61 6.80 A19.5 19.5 0 1 1 15.61 45.20" stroke="url(#atg-f)" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg><span>altouch · soluciones de bolsillo</span></div>
+  </section>
+
   <section class="screen" id="s-trash">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
       <button onclick="go('s-gastos')" style="background:var(--panel);border:1px solid var(--border);width:38px;height:38px;border-radius:10px;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">‹</button>
@@ -1577,6 +1629,7 @@ function go(id){
     if(id==='s-home')     initHome();
     if(id==='s-shared')   renderShared();
     if(id==='s-trash')    renderTrash();
+    if(id==='s-fixed')    renderFixed();
     if(id==='s-archive')  renderArchive();
     if(id==='s-evolution') renderEvolution();
     if(id==='s-manual')   renderManual();
@@ -1784,6 +1837,9 @@ function enterApp(){
 
 // ── Arranque de la app ────────────────────────────────────────────────────
 async function bootApp(){
+  // Idempotente: la red de seguridad de más abajo puede llamarla también.
+  if(window.__bootDone) return;
+  window.__bootDone = true;
   try{
     const hasAccount = !!localStorage.getItem('nmclb_name');
     const hasSession = localStorage.getItem('nmclb_session')==='1';
@@ -1861,6 +1917,7 @@ function initHome(){
   document.getElementById('eye-btn-home').textContent = valuesVisible ? '👁' : '🙈';
 
   try{ renderShared(); }catch(e){}
+  try{ refreshFixedTile(); }catch(e){}
   refreshSyncLockedBanner();
   updateSyncBadge();
   if(!valuesVisible) applyVisibilityWallet();
@@ -3819,6 +3876,7 @@ let selMovCat = 'otro';
 let selMovCurrency = 'ars';
 
 function openMovModal(type){
+  pendingFixedId = null;   // se vuelve a fijar sólo si se abre desde "Pagar"
   movType = type;
   selMovCat = 'otro';
   selMovCurrency = 'ars';
@@ -3977,6 +4035,10 @@ function confirmMovement(){
   if(!amount||amount<=0){ toast('Ingresá un monto válido'); return; }
 
   if(movType==='expense' && selMovCat==='compartido'){
+    // Si se está pagando un gasto fijo que ya sabe con quién se comparte,
+    // no se pregunta de nuevo.
+    const fx = pendingFixedId ? getFixed().find(x=>x.id===pendingFixedId) : null;
+    if(fx && fx.sharedWith){ finalizeMovement(dest, desc, amount, fx.sharedWith); return; }
     const conns = getConnections();
     if(conns.length === 1){
       finalizeMovement(dest, desc, amount, conns[0].name);
@@ -4067,9 +4129,21 @@ function finalizeMovement(dest, desc, amount, sharedWith){
     sharedWith,
     paidBy: 'me'
   };
+
+  // ¿Es el pago de un gasto fijo? Desde la lista el vínculo es explícito;
+  // si no, se intenta reconocer por la descripción.
+  let fijo = null, como = null;
+  if(!isIncome){
+    if(pendingFixedId){ fijo = getFixed().find(x=>x.id===pendingFixedId) || null; como = 'lista'; }
+    else              { fijo = matchFixed(desc); como = 'auto'; }
+  }
+  pendingFixedId = null;
+  if(fijo) mov.fixedId = fijo.id;
+
   const list = getExpenses();
   list.unshift(mov);
   saveExpenses(list);
+  if(fijo) markFixedPaid(fijo.id, {date:mov.date, amount:mov.amount, expenseId:mov.id, how:como});
 
   // Si es compartido y hay conexión, publicarlo para la otra persona
   if(sharedWith){
@@ -4090,7 +4164,9 @@ function finalizeMovement(dest, desc, amount, sharedWith){
   closeModal('modal-mov');
   initWallet(); loadDashboardData();
   const sym = selMovCurrency==='ars' ? '$' : currencyInfo(selMovCurrency).sym;
-  toast('✓ '+(movType==='income'?'Ingreso':'Egreso')+' de '+sym+fmt(amount)+' registrado');
+  toast('✓ '+(movType==='income'?'Ingreso':'Egreso')+' de '+sym+fmt(amount)+' registrado'
+        + (fijo ? ' · '+fijo.name+' marcado como pagado' : ''));
+  if(fijo && document.getElementById('s-fixed')?.classList.contains('active')) renderFixed();
 }
 
 // ── ENTRADA POR VOZ (Web Speech API) ─────────────────────────────────────
@@ -4374,12 +4450,28 @@ function recoverLostSettlements(){
       libros.push({src:'digital:'+a.name, hist:a.history||[]});
     });
 
+    // Pagos que se borraron a propósito: en la papelera, o compensados en el
+    // libro por un asiento de eliminación o corrección. Esos no se recuperan.
+    const enPapelera = (getTrash()||[]).filter(t=>t.kind==='settlement').map(t=>t.payload||{});
+
     const nuevos = [];
     libros.forEach(({src, hist})=>{
+      const compensados = [];
+      hist.forEach(h=>{
+        const d = String(h.desc||'');
+        const c = d.match(/^(?:Eliminado: |Corrección: se anula el )(pago a|cobro de) (.+)$/i);
+        if(c) compensados.push({tipo:c[1].toLowerCase(), persona:c[2], monto:Math.abs(Number(h.amount)||0), usado:false});
+      });
       hist.forEach(h=>{
         const desc = String(h.desc||'');
         const m = desc.match(/^(Pago a|Cobro de) (.+)$/);
         if(!m) return;
+        const comp = compensados.find(c=> !c.usado && c.tipo===m[1].toLowerCase() &&
+                       c.persona===m[2] && Math.abs(c.monto - Math.abs(Number(h.amount)||0)) < 0.5);
+        if(comp){ comp.usado = true; return; }
+        if(enPapelera.some(x=> x.person===m[2] &&
+             Math.abs(Math.abs(Number(x.amount)||0) - Math.abs(Number(h.amount)||0)) < 0.5 &&
+             String(x.date||'').slice(0,10)===String(h.date||'').slice(0,10))) return;
         const persona = m[2];
         const delta   = Number(h.amount)||0;
         if(!delta) return;
@@ -4435,6 +4527,7 @@ function renderSettlementRow(x){
       <div class="emeta"><span class="esrc-tag">${srcLabel}</span><span class="esrc-tag">${x.closedAt ? 'Cuenta cerrada' : 'Saldo compartido'}</span><span>${fmtDate(x.date)}</span></div>
     </div>
     <div class="eamt val-sensitive ${iPaid?'':'pos'}">${iPaid?'-':'+'}$${fmt(amount)}</div>
+    <button class="edel" onclick="openEditSettlement(${Number(x.id)||0})" title="Editar">✏️</button>
     <button class="edel" onclick="deleteSettlement(${Number(x.id)||0})" title="Eliminar">✕</button>
   </div>`;
 }
@@ -4565,14 +4658,23 @@ function deleteExpense(id){
       // Revertir: si era ingreso, restar; si era egreso, devolver
       const revert = isIncome ? -e.amount : e.amount;
 
+      // Se deja el asiento de la reversión en el libro del bolsillo: sin él,
+      // el libro mostraba el gasto borrado y el saldo no le cerraba.
       if(e.source==='cash'){
         const d = getWalletData();
         d.cash = Math.max(0, d.cash + revert);
+        d.cashHistory = d.cashHistory || [];
+        d.cashHistory.unshift({date:new Date().toISOString(), desc:'Eliminado: '+(e.desc||'movimiento'), amount:revert});
         saveAndSync('nmclb_wallet_data', d);
       } else if(e.source && e.source.startsWith('digital:')){
         const accs = getAccounts('digital');
         const i = accs.findIndex(a=>a.name===e.source.slice(8));
-        if(i>=0){ accs[i].total = Math.max(0, accs[i].total + revert); saveAccounts('digital', accs); }
+        if(i>=0){
+          accs[i].total = Math.max(0, accs[i].total + revert);
+          accs[i].history = accs[i].history || [];
+          accs[i].history.unshift({date:new Date().toISOString(), desc:'Eliminado: '+(e.desc||'movimiento'), amount:revert});
+          saveAccounts('digital', accs);
+        }
       } else if(e.source && e.source.startsWith('fx:')){
         const accs = getAccounts('fx');
         const i = accs.findIndex(a=>a.name===e.source.slice(3));
@@ -4585,6 +4687,11 @@ function deleteExpense(id){
 
     }
 
+    // Si era el pago de un gasto fijo, vuelve a quedar pendiente
+    if(e && e.fixedId){
+      const fx = getFixed().find(x=>x.id===e.fixedId);
+      if(fx && fx.paidExpenseId===e.id) unmarkFixed(e.fixedId);
+    }
     if(e) moveToTrash('expense', e, {from:'historial'});
     saveExpenses(list.filter(x=>x.id!==id));
     renderExpenseList();
@@ -4711,6 +4818,7 @@ const SENSITIVE_FIELDS = {
   expenses:          ['desc','sharedWith'],
   settlements:       ['person'],
   transfers:         ['desc','fromLabel','toLabel'],
+  fixed:             ['name','sharedWith','aliases'],
   digital_accounts:  ['name'],
   invest_accounts:   ['name'],
   fx_accounts:       ['name'],
@@ -4722,6 +4830,7 @@ const NUMERIC_FIELDS = {
   expenses:          ['amount','originalAmount'],
   settlements:       ['amount'],
   transfers:         ['amount'],
+  fixed:             ['amount','paidAmount'],
   digital_accounts:  ['total'],
   invest_accounts:   ['total','capital','interests','deposits','withdrawals'],
   fx_accounts:       ['amount'],
@@ -4898,7 +5007,7 @@ let syncing = false;
 let fbReady = false;
 
 const SYNC_KEYS = [
-  'nmclb_expenses','nmclb_settlements','nmclb_transfers','nmclb_wallet_data',
+  'nmclb_expenses','nmclb_settlements','nmclb_transfers','nmclb_fixed','nmclb_wallet_data',
   'nmclb_digital_accounts','nmclb_invest_accounts',
   'nmclb_fx_accounts','nmclb_crypto_accounts',
   'nmclb_total_includes','nmclb_trash','nmclb_archive'
@@ -5233,9 +5342,8 @@ function restoreFromTrash(trashId){
       if(list.some(x=>x.id===s.id)){ toast('Ese pago ya existe'); return; }
       list.unshift(s);
       saveSettlements(list);
-      // Reaplicar en la billetera
-      const delta = s.amount > 0 ? -Math.abs(s.amount) : Math.abs(s.amount);
-      applyDeltaToSource(s.source, delta, s.amount>0 ? 'Pago restaurado' : 'Cobro restaurado');
+      // Reaplicar en la billetera (en moneda extranjera o cripto, en unidades)
+      settlementPocketEffect(s, +1, 'Restaurado: '+settleLabel(s));
     }
     else if(item.kind === 'shared'){
       const e = item.payload;
@@ -5357,6 +5465,7 @@ function openCloseMonthModal(){
         <span style="font-size:14px;font-weight:700;">${compartidos.length}</span>
       </div>` : ''}
     </div>
+    ${fixedPendingBlock()}
     ${sharedCloseBlock()}
     <div style="background:rgba(255,178,101,.08);border:1px solid rgba(255,178,101,.28);border-radius:12px;padding:11px 13px;margin-bottom:16px;">
       <p style="font-size:11px;color:var(--accent-soft);line-height:1.5;">
@@ -5475,6 +5584,10 @@ async function confirmCloseMonth(monthKey, label){
     byCat,
     sharedSummary,
     sharedMovements,
+    fixedStatus: getFixed().filter(f=>f.paidDate || isFixedDue(f)).map(f=>({
+      name: f.name, tipo: f.tipo||'otro',
+      paid: !!f.paidDate, amount: Number(f.paidAmount)||0
+    })),
     snapshot,
     movements: movs,
     settlements: settles,
@@ -5486,6 +5599,11 @@ async function confirmCloseMonth(monthKey, label){
   saveArchive(arch);
 
   // Limpiar el mes en curso
+  // Los gastos fijos vuelven a pendiente; el último pago queda como referencia
+  // para saber cuándo vence el próximo de los que no son mensuales.
+  saveFixed(getFixed().map(f=> f.paidDate
+    ? {...f, lastPaidDate:f.paidDate, paidDate:null, paidAmount:null, paidExpenseId:null, paidHow:null}
+    : f));
   saveExpenses([]);
   saveTrash([]);   // la papelera se vacía con el cierre
 
@@ -6048,6 +6166,11 @@ function toggleMonthCard(i){
     ${snapHtml}
     ${catRows ? `<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin:14px 0 9px;">Por categoría</p>${catRows}` : ''}
     ${sharedRows ? `<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin:14px 0 9px;">Compartidos</p>${sharedRows}` : ''}
+    ${(a.fixedStatus && a.fixedStatus.length) ? `<p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin:14px 0 9px;">Gastos fijos · ${a.fixedStatus.filter(x=>x.paid).length} de ${a.fixedStatus.length} pagados</p>
+      <div class="shared-mini" style="text-align:left;">${a.fixedStatus.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;">
+        <span style="font-size:11px;color:${x.paid?'var(--text-dim)':'var(--accent-soft)'};">${x.paid?'✓':'○'} ${esc(x.name)}</span>
+        <span style="font-size:11px;font-weight:700;">${x.paid && x.amount ? '$'+fmt(x.amount) : (x.paid?'':'sin pagar')}</span>
+      </div>`).join('')}</div>` : ''}
     <div class="stack" style="margin-top:14px;gap:8px;">
       <button class="btn btn-ghost btn-sm" onclick="viewMonthMovements(${i})">📋 Ver los ${a.count} movimientos</button>
       <button class="btn btn-ghost btn-sm" onclick="exportMonthCSV(${i})" style="border-color:var(--green);color:var(--green);">⬇ Exportar CSV</button>
@@ -7593,6 +7716,27 @@ function renderSharedDetail(){
     ${d.movs.length ? `<button class="btn btn-ghost btn-sm" style="margin-bottom:16px;" onclick="openCloseSharedModal('${esc(p)}')">🤝 Cerrar cuenta con ${esc(p)}</button>` : ''}
     ${renderSharedClosures(p)}
 
+    ${settles.length ? `
+      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:9px;">Pagos entre ustedes</p>
+      <div class="lwrap" style="margin-bottom:16px;">
+        ${settles.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).map(s=>{
+          const iPaid = (Number(s.amount)||0) > 0;
+          const src = String(s.source||'');
+          const srcLabel = src==='cash' ? '💵 Efectivo' : src.startsWith('digital:') ? '📱 '+esc(src.slice(8))
+                         : src.startsWith('fx:') ? '💱 '+esc(src.slice(3)) : src.startsWith('crypto:') ? '🪙 Cripto' : '';
+          return `<div class="erow">
+            <div class="eicon" style="background:rgba(127,201,122,.15);">💸</div>
+            <div class="eleft">
+              <div class="edesc">${iPaid?'Le pagué a '+esc(p):esc(p)+' me pagó'}</div>
+              <div class="emeta">${srcLabel?`<span class="esrc-tag">${srcLabel}</span>`:''}${s.closedAt?'<span class="esrc-tag">Cuenta cerrada</span>':''}<span>${fmtDate(s.date)}</span></div>
+            </div>
+            <div class="eamt val-sensitive" style="color:var(--text);">$${fmt(Math.abs(s.amount))}</div>
+            <button class="edel" onclick="openEditSettlement(${Number(s.id)||0})" title="Editar">✏️</button>
+            <button class="edel" onclick="deleteSettlement(${Number(s.id)||0})" title="Eliminar">✕</button>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+
     <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:9px;">Gastos compartidos</p>
     <div class="lwrap" style="margin-bottom:16px;">
       ${d.movs.length ? d.movs.map(e=>{
@@ -7615,19 +7759,7 @@ function renderSharedDetail(){
       }).join('') : '<div class="empty-state" style="border:none;">Sin gastos</div>'}
     </div>
 
-    ${settles.length ? `
-      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);margin-bottom:9px;">Pagos entre ustedes</p>
-      <div class="lwrap">
-        ${settles.map((s,i)=>`<div class="erow">
-          <div class="eicon" style="background:rgba(127,201,122,.15);">💸</div>
-          <div class="eleft">
-            <div class="edesc">${s.amount>0?'Le pagué a '+esc(p):esc(p)+' me pagó'}</div>
-            <div class="emeta"><span>${fmtDate(s.date)}</span></div>
-          </div>
-          <div class="eamt pos val-sensitive">$${fmt(Math.abs(s.amount))}</div>
-          <button class="edel" onclick="deleteSettlement(${s.id})">✕</button>
-        </div>`).join('')}
-      </div>` : ''}
+
   `;
 
   if(!valuesVisible) applyVisibilityWallet();
@@ -7759,6 +7891,391 @@ function togglePaidBy(id){
 //  "gastado" ni "ingresos". Deja el asiento en el historial de los dos
 //  bolsillos, para que cada uno siga cuadrando por separado.
 // ══════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════
+//  GASTOS FIJOS — ayuda memoria del mes
+//  Una lista de lo que hay que pagar todos los meses. Cada uno queda
+//  "pagado" de dos formas que llevan al mismo lugar:
+//   1. Desde la lista, con el botón Pagar: abre el egreso ya completo y el
+//      vínculo es explícito (el movimiento guarda fixedId). No falla nunca.
+//   2. Cargando el egreso por la vía de siempre: la app compara la
+//      descripción con los fijos pendientes y, si coincide, lo marca sola.
+//  La lista se resetea al cerrar el mes, igual que el resto de la app.
+// ══════════════════════════════════════════════════════════════════════════
+const FIXED_TIPOS = {
+  servicio: {l:'Servicio', i:'💡'},
+  impuesto: {l:'Impuesto', i:'🏛️'},
+  alquiler: {l:'Alquiler', i:'🏠'},
+  seguro:   {l:'Seguro',   i:'🛡️'},
+  otro:     {l:'Otro',     i:'📌'},
+};
+const FIXED_FREQ = {mensual:1, bimestral:2, trimestral:3, semestral:6, anual:12};
+
+function getFixed(){ try{ return JSON.parse(localStorage.getItem('nmclb_fixed')||'[]'); }catch(e){ return []; } }
+function saveFixed(l){ saveAndSync('nmclb_fixed', l); }
+
+let pendingFixedId = null;   // gasto fijo que se está pagando desde la lista
+
+// Texto comparable: minúsculas, sin acentos ni signos
+function normTxt(s){
+  return String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+// ¿Le toca pagarse en este período? Los mensuales siempre; los demás
+// según cuántos meses pasaron desde el último pago.
+function isFixedDue(f){
+  const n = FIXED_FREQ[f.freq||'mensual'] || 1;
+  if(n === 1 || !f.lastPaidDate) return true;
+  const a = new Date(f.lastPaidDate), b = new Date();
+  const meses = (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth());
+  return meses >= n;
+}
+
+// "vence en 3 días", "venció hace 2 días"…
+function fixedDueText(f){
+  const dia = Number(f.dueDay);
+  if(!dia) return '';
+  const diff = dia - new Date().getDate();
+  if(diff === 0)  return 'vence hoy';
+  if(diff === 1)  return 'vence mañana';
+  if(diff > 1)    return 'vence en '+diff+' días';
+  if(diff === -1) return 'venció ayer';
+  return 'venció hace '+(-diff)+' días';
+}
+
+// La triangulación. Reglas para no marcar de más:
+//  · el nombre (o un alias) tiene que estar como palabra entera: "luz" entra
+//    en "pago luz" pero no en "luzmila"
+//  · si coinciden varios ("Luz" y "Luz oficina"), gana el más específico
+//  · sólo se consideran los que todavía no están pagados
+function matchFixed(desc){
+  const d = ' '+normTxt(desc)+' ';
+  if(d.trim()==='') return null;
+  let mejor = null, largo = 0;
+  getFixed().filter(f=>!f.paidDate).forEach(f=>{
+    const nombres = [f.name].concat(String(f.aliases||'').split(','))
+      .map(normTxt).filter(Boolean);
+    nombres.forEach(n=>{
+      if(d.includes(' '+n+' ') && n.length > largo){ mejor = f; largo = n.length; }
+    });
+  });
+  return mejor;
+}
+
+function markFixedPaid(id, {date, amount, expenseId, how}){
+  const l = getFixed();
+  const i = l.findIndex(x=>x.id===id);
+  if(i < 0) return;
+  const monto = Number(amount)||0;
+  l[i] = {...l[i],
+    paidDate: date || new Date().toISOString(),
+    paidAmount: monto,
+    paidExpenseId: expenseId || null,
+    paidHow: how || 'manual',
+    // El último pago es la mejor estimación del próximo (los servicios cambian)
+    amount: monto > 0 ? monto : l[i].amount
+  };
+  saveFixed(l);
+}
+
+function unmarkFixed(id){
+  const l = getFixed();
+  const i = l.findIndex(x=>x.id===id);
+  if(i < 0) return;
+  l[i] = {...l[i], paidDate:null, paidAmount:null, paidExpenseId:null, paidHow:null};
+  saveFixed(l);
+}
+
+// Resumen del período: cuántos van, cuánto se pagó, qué falta
+function fixedSummary(){
+  const all = getFixed();
+  const vencen   = all.filter(f=> f.paidDate || isFixedDue(f));
+  const pagados  = vencen.filter(f=> f.paidDate);
+  const pend     = vencen.filter(f=> !f.paidDate);
+  return {
+    total: vencen.length, pagados: pagados.length, pendientes: pend,
+    montoPagado: pagados.reduce((a,f)=>a+(Number(f.paidAmount)||0),0),
+    montoFalta:  pend.reduce((a,f)=>a+(Number(f.amount)||0),0),
+  };
+}
+
+function refreshFixedTile(){
+  const sub = document.getElementById('nt-fixed-sub');
+  const bar = document.getElementById('nt-fixed-bar');
+  if(!sub || !bar) return;
+  if(!getFixed().length){
+    sub.textContent = 'Armá tu lista de lo que pagás todos los meses';
+    bar.style.display = 'none';
+    return;
+  }
+  const r = fixedSummary();
+  if(!r.total){
+    sub.textContent = 'Nada vence este mes';
+    bar.style.display = 'none';
+    return;
+  }
+  const falta = r.total - r.pagados;
+  sub.textContent = falta
+    ? r.pagados+' de '+r.total+' pagados · faltan '+falta
+    : '✓ Todo pagado este mes';
+  bar.style.display = 'block';
+  bar.firstElementChild.style.width = Math.round(r.pagados*100/r.total)+'%';
+}
+
+function fixedRowHTML(f){
+  const t = FIXED_TIPOS[f.tipo] || FIXED_TIPOS.otro;
+  const tags = [`<span class="fx-tag">${t.l}</span>`];
+  if(f.sharedWith) tags.push(`<span class="fx-tag">🤝 ${esc(f.sharedWith)}</span>`);
+  if(f.auto)       tags.push(`<span class="fx-tag auto">Débito automático</span>`);
+
+  if(f.paidDate){
+    const como = f.paidHow==='auto' ? ' · reconocido solo' : f.paidHow==='manual' ? ' · marcado a mano' : '';
+    return `<div class="fx-row fx-done">
+      <div class="fx-check">✓</div>
+      <div class="fx-main" onclick="openFixedActions(${f.id})">
+        <div class="fx-name">${esc(f.name)}</div>
+        <div class="fx-meta"><span class="fx-tag">Pagado ${fmtDate(f.paidDate)}${como}</span></div>
+      </div>
+      <div class="fx-amt val-sensitive" style="color:var(--text-dim);">${f.paidAmount?'$'+fmt(f.paidAmount):''}</div>
+    </div>`;
+  }
+
+  const venc = fixedDueText(f);
+  if(venc){
+    const cls = venc.startsWith('venció') ? 'warn' : (venc==='vence hoy' || venc==='vence mañana') ? 'soon' : '';
+    tags.push(`<span class="fx-tag ${cls}">${venc}</span>`);
+  }
+  return `<div class="fx-row">
+    <div class="eicon" style="background:var(--panel-strong);">${t.i}</div>
+    <div class="fx-main" onclick="openFixedActions(${f.id})">
+      <div class="fx-name">${esc(f.name)}</div>
+      <div class="fx-meta">${tags.join('')}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      ${f.amount?`<span class="fx-amt val-sensitive" style="color:var(--text-dim);">~$${fmt(f.amount)}</span>`:''}
+      <button class="fx-pay" onclick="payFixed(${f.id})">${f.auto?'Registrar':'Pagar'}</button>
+    </div>
+  </div>`;
+}
+
+function renderFixed(){
+  const body = document.getElementById('fixed-body');
+  if(!body) return;
+  const all = getFixed();
+
+  if(!all.length){
+    body.innerHTML = `
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;">
+        <p style="font-size:30px;margin-bottom:8px;">📌</p>
+        <p style="font-size:14px;font-weight:700;margin-bottom:7px;">Tu ayuda memoria del mes</p>
+        <p style="font-size:12px;color:var(--text-dim);line-height:1.55;margin-bottom:16px;">
+          Anotá lo que pagás todos los meses —alquiler, servicios, impuestos— y la app
+          te muestra qué ya pagaste y qué no. Cuando cerrás el mes, la lista vuelve a cero.
+        </p>
+        <div class="stack">
+          <button class="btn btn-accent" onclick="loadSuggestedFixed()">Empezar con una lista sugerida</button>
+          <button class="btn btn-ghost btn-sm" onclick="openFixedEditor()">Armarla desde cero</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const r = fixedSummary();
+  const orden = (a,b)=> (Number(a.dueDay)||99) - (Number(b.dueDay)||99) || a.name.localeCompare(b.name);
+  const pend    = all.filter(f=> !f.paidDate && isFixedDue(f)).sort(orden);
+  const pagados = all.filter(f=> f.paidDate).sort((a,b)=> new Date(b.paidDate)-new Date(a.paidDate));
+  const noVence = all.filter(f=> !f.paidDate && !isFixedDue(f)).sort(orden);
+  const pct = r.total ? Math.round(r.pagados*100/r.total) : 0;
+
+  body.innerHTML = `
+    <div class="card" style="margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <p style="font-size:13px;font-weight:700;">${r.pagados} de ${r.total} pagados</p>
+        <p style="font-size:12px;color:var(--text-dim);">${pct}%</p>
+      </div>
+      <div class="nt-bar" style="height:7px;margin-top:9px;"><i style="width:${pct}%"></i></div>
+      <div style="display:flex;justify-content:space-between;margin-top:11px;gap:10px;">
+        <div><p class="label" style="margin-bottom:2px;">Pagado</p><p class="fx-amt val-sensitive" style="color:var(--green);">$${fmt(r.montoPagado)}</p></div>
+        <div style="text-align:right;"><p class="label" style="margin-bottom:2px;">Falta (estimado)</p><p class="fx-amt val-sensitive" style="color:var(--accent-soft);">$${fmt(r.montoFalta)}</p></div>
+      </div>
+    </div>
+
+    ${pend.length ? `<p class="fx-sec">Pendientes</p><div class="lwrap">${pend.map(fixedRowHTML).join('')}</div>`
+                  : `<div style="text-align:center;padding:18px 0 4px;"><p style="font-size:13px;font-weight:700;color:var(--green);">✓ Todo pagado este mes</p></div>`}
+    ${pagados.length ? `<p class="fx-sec">Pagados</p><div class="lwrap">${pagados.map(fixedRowHTML).join('')}</div>` : ''}
+    ${noVence.length ? `<p class="fx-sec">No vencen este mes</p><div class="lwrap" style="opacity:.6;">${noVence.map(fixedRowHTML).join('')}</div>` : ''}
+
+    <p style="font-size:11px;color:var(--text-faint);line-height:1.5;margin-top:14px;">
+      Tocá un gasto para editarlo. Si lo cargás como egreso común con el mismo nombre,
+      la app lo reconoce y lo marca sola.
+    </p>`;
+  if(!valuesVisible) applyVisibility();
+}
+
+// Pagar desde la lista: abre el egreso con todo ya completo
+function payFixed(id){
+  const f = getFixed().find(x=>x.id===id);
+  if(!f) return;
+  openMovModal('expense');
+  pendingFixedId = id;   // después de openMovModal, que lo resetea
+  document.getElementById('mov-modal-title').textContent = '📌 '+(f.auto?'Registrar ':'Pagar ')+f.name;
+  if(f.amount) document.getElementById('mm-amount').value = f.amount;
+  document.getElementById('mm-desc').value = f.name;
+  // En esta app "compartido" es una categoría: si se comparte, va ahí
+  selectMovCat(f.sharedWith ? 'compartido' : (f.tipo==='servicio' ? 'servicios' : 'fijo'));
+  if(f.source){
+    const sel = document.getElementById('mm-dest');
+    if(sel && [...sel.options].some(o=>o.value===f.source)) sel.value = f.source;
+  }
+  updateMovSummary();
+  setTimeout(()=>document.getElementById('mm-amount')?.focus(), 250);
+}
+
+function openFixedActions(id){
+  const f = getFixed().find(x=>x.id===id);
+  if(!f) return;
+  document.getElementById('settle-title').textContent = f.name;
+  document.getElementById('settle-body').innerHTML = `
+    <div class="stack">
+      <button class="btn btn-ghost" onclick="closeModal('modal-settle');setTimeout(()=>openFixedEditor(${id}),220)">✏️ Editar</button>
+      ${f.paidDate
+        ? `<button class="btn btn-ghost" onclick="unmarkFixedUI(${id})">↩️ Marcar como pendiente</button>`
+        : `<button class="btn btn-ghost" onclick="markFixedManualUI(${id})">✓ Ya lo pagué (sin cargar el movimiento)</button>`}
+      <button class="btn btn-ghost" style="color:var(--red);" onclick="deleteFixedUI(${id})">🗑 Eliminar de la lista</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
+    </div>
+    ${f.paidDate && f.paidExpenseId ? `<p style="font-size:11px;color:var(--text-faint);line-height:1.5;margin-top:12px;">
+      Si lo marcás como pendiente, el egreso que ya cargaste queda igual en el historial.</p>` : ''}`;
+  document.getElementById('modal-settle').style.display='flex';
+}
+
+function markFixedManualUI(id){
+  markFixedPaid(id, {how:'manual'});
+  closeModal('modal-settle'); renderFixed(); refreshFixedTile();
+  toast('✓ Marcado como pagado');
+}
+function unmarkFixedUI(id){
+  unmarkFixed(id);
+  closeModal('modal-settle'); renderFixed(); refreshFixedTile();
+  toast('Vuelve a pendiente');
+}
+function deleteFixedUI(id){
+  closeModal('modal-settle');
+  setTimeout(()=>askConfirm('¿Sacar este gasto de la lista? Los movimientos que ya cargaste no se tocan.', ()=>{
+    saveFixed(getFixed().filter(x=>x.id!==id));
+    renderFixed(); refreshFixedTile();
+    toast('Eliminado de la lista');
+  }, 'Sí, sacar'), 220);
+}
+
+function openFixedEditor(id){
+  const f = id ? getFixed().find(x=>x.id===id) : null;
+  const v = f || {name:'', tipo:'servicio', freq:'mensual', amount:'', dueDay:'', sharedWith:'', source:'', auto:false, aliases:''};
+  const opt = (val, txt, sel)=> `<option value="${esc(val)}" ${sel?'selected':''}>${esc(txt)}</option>`;
+  const conns = getConnections();
+  const bolsillos = [{v:'cash', t:'💵 Efectivo'}].concat(getAccounts('digital').map(a=>({v:'digital:'+a.name, t:'📱 '+a.name})));
+
+  document.getElementById('settle-title').textContent = f ? 'Editar gasto fijo' : 'Nuevo gasto fijo';
+  document.getElementById('settle-body').innerHTML = `
+    <div class="field"><label class="label">Nombre</label>
+      <input class="input" id="fx-name" value="${esc(v.name)}" placeholder="Ej: Luz, Alquiler, Patente"></div>
+    <div style="display:flex;gap:9px;">
+      <div class="field" style="flex:1;"><label class="label">Tipo</label>
+        <select class="input select" id="fx-tipo">${Object.keys(FIXED_TIPOS).map(k=>opt(k, FIXED_TIPOS[k].l, v.tipo===k)).join('')}</select></div>
+      <div class="field" style="flex:1;"><label class="label">Cada cuánto</label>
+        <select class="input select" id="fx-freq">${Object.keys(FIXED_FREQ).map(k=>opt(k, k[0].toUpperCase()+k.slice(1), (v.freq||'mensual')===k)).join('')}</select></div>
+    </div>
+    <div style="display:flex;gap:9px;">
+      <div class="field" style="flex:1.4;"><label class="label">Monto aproximado</label>
+        <div style="position:relative;"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--accent-soft);font-weight:700;">$</span>
+        <input class="input" type="number" inputmode="decimal" id="fx-amount" value="${v.amount||''}" placeholder="Opcional" style="padding-left:24px;"></div></div>
+      <div class="field" style="flex:1;"><label class="label">Vence el día</label>
+        <input class="input" type="number" inputmode="numeric" min="1" max="31" id="fx-due" value="${v.dueDay||''}" placeholder="Opcional"></div>
+    </div>
+    <div class="field"><label class="label">Se comparte con</label>
+      <select class="input select" id="fx-shared">${opt('', 'Nadie, es sólo mío', !v.sharedWith)}${conns.map(c=>opt(c.name, c.name, v.sharedWith===c.name)).join('')}</select></div>
+    <div class="field"><label class="label">Lo pago normalmente desde</label>
+      <select class="input select" id="fx-source">${opt('', 'Elegir al pagar', !v.source)}${bolsillos.map(b=>opt(b.v, b.t, v.source===b.v)).join('')}</select></div>
+    <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;cursor:pointer;">
+      <input type="checkbox" id="fx-auto" ${v.auto?'checked':''} style="width:18px;height:18px;margin-top:1px;accent-color:var(--accent);flex-shrink:0;">
+      <span style="font-size:12px;color:var(--text-dim);line-height:1.45;">Es débito automático. Igual aparece en la lista, para que te acuerdes de chequear que se haya descontado.</span>
+    </label>
+    <div class="field"><label class="label">También lo anoto como (opcional)</label>
+      <input class="input" id="fx-aliases" value="${esc(v.aliases||'')}" placeholder="Ej: EPE, Litoral Gas">
+      <p style="font-size:11px;color:var(--text-faint);margin-top:5px;line-height:1.45;">Separados por coma. Si cargás un egreso con alguno de estos nombres, la app lo reconoce y lo marca como pagado.</p></div>
+    <div class="stack" style="margin-top:4px;">
+      <button class="btn btn-accent" onclick="saveFixedEditor(${f?f.id:0})">${f?'Guardar cambios':'Agregar a la lista'}</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
+    </div>`;
+  document.getElementById('modal-settle').style.display='flex';
+  if(!f) setTimeout(()=>document.getElementById('fx-name')?.focus(), 250);
+}
+
+function saveFixedEditor(id){
+  const name = document.getElementById('fx-name').value.trim();
+  if(!name){ toast('Poné un nombre'); return; }
+  const dueRaw = parseInt(document.getElementById('fx-due').value, 10);
+  const datos = {
+    name,
+    tipo:   document.getElementById('fx-tipo').value,
+    freq:   document.getElementById('fx-freq').value,
+    amount: parseFloat(document.getElementById('fx-amount').value) || 0,
+    dueDay: (dueRaw>=1 && dueRaw<=31) ? dueRaw : null,
+    sharedWith: document.getElementById('fx-shared').value || null,
+    source: document.getElementById('fx-source').value || null,
+    auto:   document.getElementById('fx-auto').checked,
+    aliases: document.getElementById('fx-aliases').value.trim()
+  };
+  const l = getFixed();
+  // Dos gastos con el mismo nombre confunden la triangulación
+  if(l.some(x=> x.id!==id && normTxt(x.name)===normTxt(name))){
+    toast('Ya tenés un gasto fijo con ese nombre'); return;
+  }
+  if(id){
+    const i = l.findIndex(x=>x.id===id);
+    if(i>=0) l[i] = {...l[i], ...datos};
+  } else {
+    l.push({id: Date.now(), ...datos, lastPaidDate:null, paidDate:null, paidAmount:null, paidExpenseId:null, paidHow:null});
+  }
+  saveFixed(l);
+  closeModal('modal-settle');
+  renderFixed(); refreshFixedTile();
+  toast(id ? '✓ Cambios guardados' : '✓ Agregado a la lista');
+}
+
+// Lista de partida, genérica: cada uno borra lo que no usa y renombra
+function loadSuggestedFixed(){
+  const base = [
+    ['Alquiler','alquiler'], ['Luz','servicio'], ['Gas','servicio'], ['Agua','servicio'],
+    ['Celular','servicio'], ['Internet','servicio'],
+    ['Impuesto inmobiliario','impuesto'], ['Tasa municipal','impuesto'],
+    ['Patente','impuesto'], ['Seguro del auto','seguro'], ['Seguro de la casa','seguro'],
+    ['Monotributo','impuesto'], ['Obra social','otro']
+  ];
+  const t0 = Date.now();
+  saveFixed(base.map(([name,tipo],i)=>({
+    id: t0+i, name, tipo, freq:'mensual', amount:0, dueDay:null, sharedWith:null,
+    source:null, auto:false, aliases:'',
+    lastPaidDate:null, paidDate:null, paidAmount:null, paidExpenseId:null, paidHow:null
+  })));
+  renderFixed(); refreshFixedTile();
+  toast('✓ Lista cargada — tocá cada uno para ajustarlo');
+}
+
+// Recordatorio en el cierre de mes, sin frenar nada
+function fixedPendingBlock(){
+  const pend = fixedSummary().pendientes;
+  if(!pend.length) return '';
+  const nombres = pend.slice(0,5).map(f=>esc(f.name)).join(', ') + (pend.length>5 ? ' y '+(pend.length-5)+' más' : '');
+  return `<div style="background:rgba(255,178,101,.08);border:1px solid rgba(255,178,101,.32);border-radius:12px;padding:11px 13px;margin-bottom:12px;">
+    <p style="font-size:11px;color:var(--accent-soft);line-height:1.5;">
+      📌 Te ${pend.length===1?'queda 1 gasto fijo':'quedan '+pend.length+' gastos fijos'} sin marcar: ${nombres}.
+      Al cerrar, la lista vuelve a cero igual.
+    </p>
+  </div>`;
+}
+
 function getTransfers(){ return JSON.parse(localStorage.getItem('nmclb_transfers') || '[]'); }
 function saveTransfers(l){ saveAndSync('nmclb_transfers', l); }
 
@@ -8057,6 +8574,13 @@ const MANUAL = [
     body:'Todos tus movimientos, filtrables por categoría y por origen. Cada uno se puede editar o borrar, y la billetera se recalcula sola.'
   },
   {
+    icon:'📌', title:'Gastos fijos',
+    body:'Tu ayuda memoria de lo que pagás todos los meses. Armás la lista una vez —alquiler, servicios, impuestos, seguros— y cada mes ves qué ya pagaste y qué falta.<br><br>' +
+         '<b>Dos formas de marcarlos.</b> Con el botón <b>Pagar</b> se abre el egreso ya completo y queda marcado al confirmar. O cargás el egreso como siempre: si la descripción coincide con un gasto fijo, la app lo reconoce y lo marca sola.<br><br>' +
+         'Si a veces lo anotás con otro nombre (por ejemplo <i>EPE</i> en vez de <i>Luz</i>), agregalo en <b>También lo anoto como</b>. Los de débito automático aparecen igual, para que te acuerdes de chequear que se hayan descontado.<br><br>' +
+         'Al cerrar el mes la lista vuelve a cero y en el archivo queda qué se pagó.'
+  },
+  {
     icon:'📅', title:'Cerrar el mes',
     body:'Archiva los movimientos del mes y deja el contador en cero. Guarda una foto de los saldos de todos tus bolsillos en ese momento, con las cotizaciones del día. Los saldos actuales no se tocan.'
   },
@@ -8275,31 +8799,145 @@ function confirmSettle(person, iOwe){
   }
 }
 
+// ── Efecto de un pago compartido sobre su bolsillo ──────────────────────
+// signo +1 aplica el pago como se hizo; -1 lo revierte. Siempre deja asiento
+// en el libro del bolsillo, así el libro cierra contra el saldo.
+// Ojo con las descripciones: NO pueden empezar con "Pago a" ni "Cobro de",
+// porque la recuperación de la v53 busca justamente esos textos.
+function settleLabel(s){
+  return ((Number(s.amount)||0) > 0 ? 'pago a ' : 'cobro de ') + (s.person||'');
+}
+
+function settlementPocketEffect(s, signo, desc){
+  const src = String(s.source||'');
+  const dir = (Number(s.amount)||0) > 0 ? -1 : 1;   // le pagué: sale plata; me pagaron: entra
+  const k   = dir * signo;
+
+  if(src==='cash' || src.startsWith('digital:') || src.startsWith('invest:')){
+    return applyToPocket(src, k * Math.abs(Number(s.amount)||0), desc);
+  }
+  // Moneda extranjera y cripto: se mueven las UNIDADES que se descontaron al
+  // pagar (no los pesos), con la cotización de aquel momento.
+  const u = Math.abs(Number(s.detail && s.detail.units)||0);
+  if(src.startsWith('fx:') && s.detail && s.detail.kind==='fx'){
+    return applyToPocket(src, 0, desc, k * u);
+  }
+  if(src.startsWith('crypto:') && s.detail && s.detail.kind==='crypto'){
+    const accs = getAccounts('crypto');
+    const a = accs[parseInt(src.slice(7),10)];
+    if(!a || a.symbol !== s.detail.symbol) return false;
+    a.amount = Math.max(0, (Number(a.amount)||0) + k*u);
+    a.history = a.history || [];
+    a.history.unshift({date:new Date().toISOString(), desc, amount:k*u});
+    saveAccounts('crypto', accs);
+    return true;
+  }
+  return false;
+}
+
+function refreshAfterSettlementChange(){
+  initWallet();
+  renderShared();
+  if(document.getElementById('s-shared-detail')?.classList.contains('active')) renderSharedDetail();
+  if(document.getElementById('s-gastos')?.classList.contains('active')) initGastos();
+  if(currentPocket && document.getElementById('s-pocket-detail')?.classList.contains('active')) renderPocketBody(currentPocket);
+}
+
 function deleteSettlement(id){
-  askConfirm('¿Eliminar este pago?', ()=>{
+  closeModal('modal-settle');
+  setTimeout(()=>askConfirm('¿Eliminar este pago? La plata vuelve al bolsillo de donde salió.', ()=>{
     const settles = getSettlements();
     const s = settles.find(x=>x.id===id);
     if(s){
-      // Revertir en la billetera
-      const revert = -s.amount;
-      if(s.source==='cash'){
-        const d = getWalletData();
-        d.cash = Math.max(0, d.cash + (s.amount>0 ? s.amount : -Math.abs(s.amount)));
-        saveAndSync('nmclb_wallet_data', d);
-      } else if(s.source && s.source.startsWith('digital:')){
-        const accs = getAccounts('digital');
-        const i = accs.findIndex(a=>a.name===s.source.slice(8));
-        if(i>=0){ accs[i].total = Math.max(0, accs[i].total + (s.amount>0 ? s.amount : -Math.abs(s.amount))); saveAccounts('digital', accs); }
-      }
+      settlementPocketEffect(s, -1, 'Eliminado: '+settleLabel(s));
+      moveToTrash('settlement', s, {person:s.person});
     }
-    if(s) moveToTrash('settlement', s, {person:s.person});
     saveSettlements(settles.filter(x=>x.id!==id));
-    initWallet();
-    renderSharedDetail();
-    renderShared();
-    if(document.getElementById('s-gastos')?.classList.contains('active')) initGastos();
+    refreshAfterSettlementChange();
     toast('Pago eliminado');
-  });
+  }, 'Sí, eliminar'), 200);
+}
+
+// ── Editar un pago ───────────────────────────────────────────────────────
+function openEditSettlement(id){
+  const s = getSettlements().find(x=>x.id===id);
+  if(!s){ toast('No se encontró el pago'); return; }
+  const src = String(s.source||'');
+  const iPaid = (Number(s.amount)||0) > 0;
+  const editable = src==='cash' || src.startsWith('digital:');
+
+  document.getElementById('settle-title').textContent = iPaid ? 'Pago a '+s.person : 'Cobro de '+s.person;
+
+  if(!editable){
+    document.getElementById('settle-body').innerHTML = `
+      <p style="font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:16px;">
+        Este pago se hizo en moneda extranjera o cripto, con la cotización de ese día.
+        Para cambiarlo, eliminalo (las unidades vuelven a la cuenta) y cargalo de nuevo.
+      </p>
+      <div class="stack">
+        <button class="btn btn-ghost" style="color:var(--red);" onclick="deleteSettlement(${s.id})">🗑 Eliminar este pago</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
+      </div>`;
+    document.getElementById('modal-settle').style.display='flex';
+    return;
+  }
+
+  const opts = '<option value="cash">💵 Efectivo</option>'
+    + getAccounts('digital').map(a=>`<option value="digital:${esc(a.name)}">📱 ${esc(a.name)}</option>`).join('');
+
+  document.getElementById('settle-body').innerHTML = `
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;">
+      Registrado el ${fmtDateFull(s.date)}. Al guardar, la app corrige el bolsillo:
+      devuelve lo que había movido y aplica el monto nuevo.
+    </p>
+    <div class="field"><label class="label">Monto</label>
+      <div style="position:relative;"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--accent-soft);font-weight:700;">$</span>
+      <input class="input" type="number" inputmode="decimal" id="es-amount" value="${Math.abs(Number(s.amount)||0)}" style="padding-left:24px;font-weight:700;font-size:18px;"></div></div>
+    <div class="field"><label class="label">${iPaid?'¿De dónde salió?':'¿A dónde entró?'}</label>
+      <select class="input select" id="es-source">${opts}</select></div>
+    ${s.closedAt ? `<p style="font-size:11px;color:var(--text-faint);line-height:1.5;margin-bottom:12px;">
+      Esta cuenta ya está cerrada: el cambio corrige tu bolsillo, pero no reabre el balance con ${esc(s.person)}.</p>` : ''}
+    <div class="stack" style="margin-top:4px;">
+      <button class="btn btn-accent" onclick="saveEditSettlement(${s.id})">Guardar cambios</button>
+      <button class="btn btn-ghost" style="color:var(--red);" onclick="deleteSettlement(${s.id})">🗑 Eliminar este pago</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-settle')">Cancelar</button>
+    </div>`;
+  document.getElementById('es-source').value = src;
+  document.getElementById('modal-settle').style.display='flex';
+  setTimeout(()=>document.getElementById('es-amount')?.select(), 250);
+}
+
+function saveEditSettlement(id){
+  const monto = parseFloat(document.getElementById('es-amount').value);
+  const nuevoSrc = document.getElementById('es-source').value;
+  if(!monto || monto <= 0){ toast('Ingresá un monto válido'); return; }
+
+  const l = getSettlements();
+  const i = l.findIndex(x=>x.id===id);
+  if(i < 0){ toast('No se encontró el pago'); return; }
+  const viejo = l[i];
+  const signo = (Number(viejo.amount)||0) > 0 ? 1 : -1;
+
+  if(Math.abs(Number(viejo.amount)) === monto && viejo.source === nuevoSrc){
+    closeModal('modal-settle'); return;   // no cambió nada
+  }
+
+  const nuevo = {...viejo, amount: signo*monto, source: nuevoSrc, detail: null, editedAt: new Date().toISOString()};
+
+  // Primero se revierte lo viejo y después se aplica lo nuevo. Si el bolsillo
+  // nuevo no existiera, se restituye lo viejo para no perder plata.
+  settlementPocketEffect(viejo, -1, 'Corrección: se anula el '+settleLabel(viejo));
+  const ok = settlementPocketEffect(nuevo, +1, (signo>0?'Pago corregido a ':'Cobro corregido de ')+viejo.person);
+  if(!ok){
+    settlementPocketEffect(viejo, +1, 'Corrección revertida: '+settleLabel(viejo));
+    toast('No se encontró el bolsillo elegido');
+    return;
+  }
+  l[i] = nuevo;
+  saveSettlements(l);
+  closeModal('modal-settle');
+  refreshAfterSettlementChange();
+  toast('✓ Pago corregido');
 }
 
 // ── Toast ───────────────────────────────────────────────────────────────
@@ -8419,6 +9057,21 @@ function hardReload(){
 }
 
 // ── ARRANQUE DE LA APP ───────────────────────────────────────────────────
+// Red de seguridad del arranque.
+// bootApp() se dispara con DOMContentLoaded, que NO llega hasta que terminan
+// de cargar los scripts diferidos (el SDK de Firebase, por ejemplo). Si uno de
+// esos se cuelga, la app quedaba sin arrancar. A los 4 segundos arranca igual:
+// bootApp es idempotente, así que si ya corrió esto no hace nada.
+setTimeout(()=>{
+  if(window.__bootDone) return;
+  try{ bootApp(); }
+  catch(err){
+    console.error('arranque forzado falló:', err);
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s-welcome')?.classList.add('active');
+  }
+}, 4000);
+
 window.addEventListener('DOMContentLoaded', ()=>{
   try{
     // El banner "Entrar con huella" del login queda oculto a propósito: en un
