@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NMCLB">
 <title>NMCLB · Altouch</title>
-<meta name="app-version" content="56">
+<meta name="app-version" content="57">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -3261,6 +3261,159 @@ function renderPocketMovements(type){
   if(!valuesVisible) applyVisibility();
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+//  REPARACIÓN DE LIBROS
+//  Hasta la v56 había caminos que borraban movimientos sin dejar asiento en
+//  el libro del bolsillo, y uno que además no devolvía la plata. En el libro
+//  los dos casos se ven igual —un asiento suelto en negativo— pero piden cosas
+//  opuestas. La papelera dice cuál es cuál, porque guarda qué se borró y cómo:
+//   · pago compartido o movimiento borrado con la versión vieja → la plata SÍ
+//     volvió, sólo falta el asiento (no se toca el saldo)
+//   · gasto compartido borrado desde la pantalla de la persona → la plata NO
+//     volvió, hay que devolverla
+//  Nada se aplica solo: se muestra y la persona confirma cada uno.
+// ══════════════════════════════════════════════════════════════════════════
+const REPAIR_DISMISSED = 'nmclb_repairsDismissed';
+const SYSTEM_DESC = /^(Eliminado|Corrección|Corregido|Reparación|Restaurado|Reversión|Ajuste manual|Pago corregido|Cobro corregido)/i;
+
+function findLedgerRepairs(type){
+  const libros = [];
+  if(type==='cash') libros.push({src:'cash', hist:getWalletData().cashHistory||[]});
+  if(type==='digital') getAccounts('digital').forEach(a=>libros.push({src:'digital:'+a.name, hist:a.history||[]}));
+
+  const trash = getTrash() || [];
+  const myUid = (currentUser && currentUser.uid) || localStorage.getItem('nmclb_uid') || '';
+  let descartados = [];
+  try{ descartados = JSON.parse(localStorage.getItem(REPAIR_DISMISSED)||'[]'); }catch(e){}
+  const mismoDia = (a,b)=> String(a||'').slice(0,10) === String(b||'').slice(0,10);
+  const casi     = (a,b)=> Math.abs((Number(a)||0) - (Number(b)||0)) < 0.5;
+  const usados   = new Set();   // cada ítem de la papelera explica un solo asiento
+  const out = [];
+
+  libros.forEach(({src, hist})=>{
+    // Asientos que compensan a otro, para no ofrecer reparar lo ya arreglado
+    const comp = hist.map(h=>({h, d:String(h.desc||'').toLowerCase(), usado:false}));
+    const compensado = (desc, amt)=>{
+      const d = desc.toLowerCase();
+      const c = comp.find(x=> !x.usado && casi(x.h.amount, -amt) &&
+        (x.d==='eliminado: '+d || x.d==='corrección: se anula '+d ||
+         x.d==='corrección: se anula el '+d || x.d==='reparación: '+d));
+      if(c){ c.usado = true; return true; }
+      return false;
+    };
+
+    hist.forEach(h=>{
+      const desc = String(h.desc||'');
+      const amt  = Number(h.amount)||0;
+      if(!amt || SYSTEM_DESC.test(desc)) return;
+      if(compensado(desc, amt)) return;
+
+      let tipo = null, idx = -1;
+      const mp = desc.match(/^(Pago a|Cobro de) (.+)$/);
+      if(mp){
+        idx = trash.findIndex((t,i)=> !usados.has(i) && t.kind==='settlement' && t.payload &&
+          t.payload.person===mp[2] && String(t.payload.source||'')===src &&
+          casi(Math.abs(t.payload.amount), Math.abs(amt)) && mismoDia(t.payload.date, h.date));
+        if(idx>=0) tipo = 'asiento';
+      }
+      if(!tipo){
+        idx = trash.findIndex((t,i)=> !usados.has(i) && t.kind==='shared' && t.payload &&
+          t.payload.byUid===myUid && String(t.payload.desc||'')===desc &&
+          casi(t.payload.amount, Math.abs(amt)) && mismoDia(t.payload.date||t.payload.at, h.date));
+        if(idx>=0) tipo = 'devolver';
+      }
+      if(!tipo){
+        idx = trash.findIndex((t,i)=> !usados.has(i) && t.kind==='expense' && t.payload &&
+          String(t.payload.source||'')===src && String(t.payload.desc||'')===desc &&
+          casi((t.payload.type==='income'?1:-1)*(Number(t.payload.amount)||0), amt) &&
+          mismoDia(t.payload.date, h.date));
+        if(idx>=0) tipo = 'asiento';
+      }
+      if(!tipo) return;
+      usados.add(idx);
+      const key = [src, String(h.date||'').slice(0,19), desc, amt].join('|');
+      if(descartados.includes(key)) return;
+      out.push({key, tipo, src, date:h.date, desc, amount:amt});
+    });
+  });
+  return out;
+}
+
+function showLedgerRepairs(type, el){
+  const viejo = document.getElementById('pd-repairs');
+  if(viejo) viejo.remove();
+  const lista = findLedgerRepairs(type);
+  window._ledgerRepairs = lista;
+  if(!lista.length || !el || !el.parentNode) return;
+
+  const div = document.createElement('div');
+  div.id = 'pd-repairs';
+  div.style.cssText = 'background:rgba(255,178,101,.08);border:1px solid rgba(255,178,101,.32);border-radius:14px;padding:13px;margin-bottom:14px;';
+  div.innerHTML = `
+    <p style="font-size:13px;font-weight:800;color:var(--accent-soft);margin-bottom:4px;">🔧 Hay ${lista.length===1?'un movimiento':lista.length+' movimientos'} sin cuadrar</p>
+    <p style="font-size:11px;color:var(--text-dim);line-height:1.5;">Son borrados de antes de esta versión, que la app no registró bien. Revisá cada uno.</p>
+    ${lista.map((r,i)=>{
+      const bols = pocketLabel(r.src);
+      const abs  = Math.abs(r.amount);
+      const saldo = pocketBalance(r.src);
+      const queda = saldo===null ? '' : ' '+esc(bols)+' va a quedar en $'+fmt(saldo + (-r.amount))+'.';
+      return `<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px;">
+        <p style="font-size:12px;font-weight:700;">${esc(r.desc)} · $${fmt(abs)} <span style="font-weight:500;color:var(--text-faint);">${fmtDate(r.date)}</span></p>
+        <p style="font-size:11px;color:var(--text-dim);line-height:1.45;margin:3px 0 9px;">
+          ${r.tipo==='devolver'
+            ? 'Lo borraste, pero la plata no volvió a '+esc(bols)+' (era un error de la app).'+queda
+            : 'Lo borraste y la plata ya volvió, pero no quedó anotado. Se agrega el asiento que falta: <b>tu saldo no cambia</b>.'}
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" style="width:auto;padding:0 14px;background:var(--panel-strong);border:1px solid var(--border-strong);color:var(--text);" onclick="applyLedgerRepair(${i})">
+            ${r.tipo==='devolver' ? 'Devolver $'+fmt(abs) : 'Anotarlo'}</button>
+          <button class="btn btn-ghost btn-sm" style="width:auto;padding:0 14px;" onclick="dismissLedgerRepair(${i})">Dejar como está</button>
+        </div>
+      </div>`;
+    }).join('')}`;
+  el.parentNode.insertBefore(div, el);
+}
+
+function applyLedgerRepair(i){
+  const r = (window._ledgerRepairs||[])[i];
+  if(!r) return;
+  // Se vuelve a calcular para no aplicar algo que ya cambió
+  const tipoPocket = r.src==='cash' ? 'cash' : 'digital';
+  const vigente = findLedgerRepairs(tipoPocket).find(x=>x.key===r.key);
+  if(!vigente){ toast('Ya estaba arreglado'); if(currentPocket) renderPocketBody(currentPocket); return; }
+
+  const desc = 'Reparación: '+r.desc;
+  if(r.tipo==='devolver'){
+    applyToPocket(r.src, -r.amount, desc);       // vuelve la plata, con su asiento
+  } else {
+    // Sólo el asiento: el saldo ya estaba bien
+    const asiento = {date:new Date().toISOString(), desc, amount:-r.amount};
+    if(r.src==='cash'){
+      const d = getWalletData();
+      d.cashHistory = d.cashHistory || [];
+      d.cashHistory.unshift(asiento);
+      saveAndSync('nmclb_wallet_data', d);
+    } else {
+      const accs = getAccounts('digital');
+      const k = accs.findIndex(a=>a.name===r.src.slice(8));
+      if(k>=0){ accs[k].history = accs[k].history||[]; accs[k].history.unshift(asiento); saveAccounts('digital', accs); }
+    }
+  }
+  initWallet();
+  if(currentPocket) renderPocketBody(currentPocket);
+  toast(r.tipo==='devolver' ? '✓ $'+fmt(Math.abs(r.amount))+' devueltos a '+pocketLabel(r.src) : '✓ Anotado');
+}
+
+function dismissLedgerRepair(i){
+  const r = (window._ledgerRepairs||[])[i];
+  if(!r) return;
+  let l = [];
+  try{ l = JSON.parse(localStorage.getItem(REPAIR_DISMISSED)||'[]'); }catch(e){}
+  l.push(r.key);
+  localStorage.setItem(REPAIR_DISMISSED, JSON.stringify(l.slice(-100)));
+  if(currentPocket) renderPocketBody(currentPocket);
+}
+
 // Lista del bolsillo Digital: junta los historiales de todas las billeteras
 // y los reconcilia contra la suma de sus saldos.
 function renderDigitalLedger(el){
@@ -3324,6 +3477,7 @@ function renderDigitalLedger(el){
 
   el.innerHTML = filas.slice(0,TOPE).map(f => f.tipo==='gasto' ? renderMovRow(f.exp) : filaAsiento(f)).join('')
                + corte + filaInicial;
+  showLedgerRepairs('digital', el);
   if(!valuesVisible) applyVisibility();
 }
 
@@ -3389,6 +3543,7 @@ function renderCashLedger(el){
 
   el.innerHTML = visibles.map(f => f.tipo==='gasto' ? renderMovRow(f.exp) : filaAsiento(f.h)).join('')
                + corte + filaInicial;
+  showLedgerRepairs('cash', el);
   if(!valuesVisible) applyVisibility();
 }
 
@@ -4606,13 +4761,24 @@ function saveEditMov(id){
   if(!newDesc){ toast('Poné una descripción'); return; }
   if(!newAmount||newAmount<=0){ toast('Monto inválido'); return; }
 
-  // Revertir el impacto anterior en el bolsillo
-  revertPocketImpact(old);
-  // Aplicar el nuevo impacto
-  applyPocketImpact({...old, desc:newDesc, amount:newAmount, source:newDest});
+  // Moneda extranjera: el editor sólo ofrece bolsillos en pesos, así que
+  // guardar movería el movimiento a efectivo sin querer.
+  if(String(old.source||'').startsWith('fx:') && newDest !== old.source){
+    toast('Los movimientos en moneda extranjera se corrigen eliminándolos y cargándolos de nuevo');
+    return;
+  }
+  const nuevo = {...old, desc:newDesc, amount:newAmount, source:newDest,
+                 // un ingreso sigue siendo ingreso: no toma la categoría del selector
+                 cat: old.type==='income' ? old.cat : editMovCat};
 
-  list[idx] = {...old, desc:newDesc, amount:newAmount, cat:editMovCat, source:newDest};
+  // Sólo se toca el bolsillo si cambió el monto o el bolsillo
+  if(Number(old.amount)!==newAmount || old.source!==newDest){
+    movementPocketEffect(old,   -1, 'Corrección: se anula '+(old.desc||'movimiento'));
+    movementPocketEffect(nuevo, +1, 'Corregido: '+newDesc);
+  }
+  list[idx] = nuevo;
   saveExpenses(list);
+  syncFixedAfterEdit(old, nuevo);
 
   closeModal('modal-edit-mov');
   renderExpenseList(); initWallet(); initHome();
@@ -4620,33 +4786,30 @@ function saveEditMov(id){
   toast('✓ Movimiento actualizado');
 }
 
-function revertPocketImpact(e){
-  if(e.source==='cash'){
-    const d = getWalletData(); d.cash += e.amount;
-    saveAndSync('nmclb_wallet_data', d);
-  } else if(e.source && e.source.startsWith('digital:')){
-    const accs = getAccounts('digital');
-    const i = accs.findIndex(a=>a.name===e.source.slice(8));
-    if(i>=0){ accs[i].total += e.amount; saveAccounts('digital', accs); }
+// ── Efecto de un movimiento (gasto o ingreso) sobre su bolsillo ──────────
+// signo +1 lo aplica tal como se cargó; -1 lo revierte. Deja SIEMPRE el
+// asiento en el libro del bolsillo, para que el libro cierre contra el saldo.
+// Antes había tres versiones de esto, y dos trataban todo como gasto: al
+// editar un INGRESO, en vez de restar sumaba y el saldo quedaba mal.
+function movementPocketEffect(e, signo, desc){
+  const src = String(e.source||'');
+  const dir = e.type==='income' ? 1 : -1;
+  const pesos = dir * signo * (Number(e.amount)||0);
+  if(src.startsWith('fx:')){
+    // En moneda extranjera el saldo se guarda en dólares/euros, no en pesos
+    const unidades = dir * signo * (Number(e.originalAmount)||Number(e.amount)||0);
+    return applyToPocket(src, pesos, desc, unidades);
   }
+  return applyToPocket(src, pesos, desc);
+}
+
+// Se mantienen los nombres viejos, ahora apoyados en la función única
+function revertPocketImpact(e){
+  return movementPocketEffect(e, -1, 'Corrección: se anula '+(e.desc||'movimiento'));
 }
 
 function applyPocketImpact(e){
-  if(e.source==='cash'){
-    const d = getWalletData(); d.cash = Math.max(0, d.cash - e.amount);
-    d.cashHistory = d.cashHistory||[];
-    d.cashHistory.unshift({date:new Date().toISOString(), desc:e.desc+' (editado)', amount:-e.amount});
-    saveAndSync('nmclb_wallet_data', d);
-  } else if(e.source && e.source.startsWith('digital:')){
-    const accs = getAccounts('digital');
-    const i = accs.findIndex(a=>a.name===e.source.slice(8));
-    if(i>=0){
-      accs[i].total = Math.max(0, accs[i].total - e.amount);
-      accs[i].history = accs[i].history||[];
-      accs[i].history.unshift({date:new Date().toISOString(), desc:e.desc+' (editado)', amount:-e.amount});
-      saveAccounts('digital', accs);
-    }
-  }
+  return movementPocketEffect(e, +1, 'Corregido: '+(e.desc||'movimiento'));
 }
 
 function deleteExpense(id){
@@ -5322,6 +5485,10 @@ function restoreFromTrash(trashId){
       saveExpenses(list);
       // Volver a aplicar el impacto en el bolsillo
       applyPocketImpactSigned(e);
+      if(e.fixedId){
+        const fx = getFixed().find(x=>x.id===e.fixedId);
+        if(fx && !fx.paidDate) markFixedPaid(e.fixedId, {date:e.date, amount:e.amount, expenseId:e.id, how:'lista'});
+      }
       // Si era compartido y hay conexión, republicarlo
       if(e.sharedWith){
         const conn = getConnections().find(c=>c.name===e.sharedWith);
@@ -5388,8 +5555,7 @@ function emptyTrash(){
 
 // Aplica el impacto de un movimiento respetando si es ingreso o egreso
 function applyPocketImpactSigned(e){
-  const delta = e.type === 'income' ? e.amount : -e.amount;
-  applyDeltaToSource(e.source, delta, e.desc + ' (restaurado)');
+  return movementPocketEffect(e, +1, 'Restaurado: '+(e.desc||'movimiento'));
 }
 
 function applyDeltaToSource(source, delta, desc){
@@ -7821,18 +7987,37 @@ async function saveSharedEdit(ref, isCloud){
         desc: await encryptText(desc, k),
         amount: await encryptText(String(amount), k)
       });
-      toast('✓ Actualizado para ambos');
     }catch(err){ toast('No se pudo actualizar'); return; }
+    // Antes se actualizaba sólo la nube: tu gasto en el historial quedaba con
+    // el monto viejo y el bolsillo no se corregía.
+    const list = getExpenses();
+    const i = list.findIndex(x=>x.sharedKey===ref);
+    if(i>=0){
+      const old = list[i];
+      const nuevo = {...old, desc, amount};
+      if(Number(old.amount)!==amount){
+        movementPocketEffect(old,   -1, 'Corrección: se anula '+(old.desc||'gasto compartido'));
+        movementPocketEffect(nuevo, +1, 'Corregido: '+desc);
+      }
+      list[i] = nuevo;
+      saveExpenses(list);
+      syncFixedAfterEdit(old, nuevo);
+    }
+    toast('✓ Actualizado para ambos');
   } else {
     // Movimiento local: ajustar también el bolsillo
     const list = getExpenses();
     const i = list.findIndex(x=>x.id===ref);
     if(i<0){ toast('No se encontró'); return; }
     const old = list[i];
-    revertPocketImpact(old);
-    applyPocketImpact({...old, desc, amount});
-    list[i] = {...old, desc, amount};
+    const nuevo = {...old, desc, amount};
+    if(Number(old.amount)!==amount){
+      movementPocketEffect(old,   -1, 'Corrección: se anula '+(old.desc||'gasto compartido'));
+      movementPocketEffect(nuevo, +1, 'Corregido: '+desc);
+    }
+    list[i] = nuevo;
     saveExpenses(list);
+    syncFixedAfterEdit(old, nuevo);
     toast('✓ Gasto actualizado');
   }
 
@@ -7848,18 +8033,30 @@ function deleteSharedMov(ref, isCloud){
 
   askConfirm('¿Eliminar este gasto compartido?', async ()=>{
     if(isCloud && conn){
-      const cloudMov = getSharedExpenses(conn.pairId).find(x=>x.fbKey===ref);
-      if(cloudMov) moveToTrash('shared', cloudMov, {pairId:conn.pairId, person:p});
+      // Si el gasto lo pagué yo, también está en mi lista y salió de un
+      // bolsillo. Antes acá se borraba sin devolver la plata: el gasto
+      // desaparecía pero el bolsillo quedaba descontado.
+      const local = getExpenses().find(x=>x.sharedKey===ref);
+      if(local){
+        movementPocketEffect(local, -1, 'Eliminado: '+(local.desc||'gasto compartido'));
+        syncFixedAfterEdit(local, null);
+        // A la papelera va el gasto completo: al restaurarlo vuelve al
+        // bolsillo y se publica de nuevo para la otra persona.
+        moveToTrash('expense', local, {from:'compartido', person:p});
+      } else {
+        const cloudMov = getSharedExpenses(conn.pairId).find(x=>x.fbKey===ref);
+        if(cloudMov) moveToTrash('shared', cloudMov, {pairId:conn.pairId, person:p});
+      }
       await deleteSharedExpense(conn.pairId, ref);
-      const list = getExpenses().filter(x=>x.sharedKey!==ref);
-      saveExpenses(list);
+      saveExpenses(getExpenses().filter(x=>x.sharedKey!==ref));
       toast('Eliminado para ambos');
     } else {
       const list = getExpenses();
       const e = list.find(x=>x.id===ref);
       if(e){
         moveToTrash('expense', e, {from:'compartido', person:p});
-        revertPocketImpact(e);
+        movementPocketEffect(e, -1, 'Eliminado: '+(e.desc||'gasto compartido'));
+        syncFixedAfterEdit(e, null);
         if(e.sharedKey && e.pairId) deleteSharedExpense(e.pairId, e.sharedKey);
       }
       saveExpenses(list.filter(x=>x.id!==ref));
@@ -7979,6 +8176,16 @@ function markFixedPaid(id, {date, amount, expenseId, how}){
   saveFixed(l);
 }
 
+function syncFixedAfterEdit(oldExp, newExp){
+  if(!oldExp || !oldExp.fixedId) return;
+  const l = getFixed();
+  const i = l.findIndex(x=>x.id===oldExp.fixedId);
+  if(i<0 || l[i].paidExpenseId!==oldExp.id) return;
+  if(!newExp){ unmarkFixed(oldExp.fixedId); return; }
+  l[i] = {...l[i], paidAmount:Number(newExp.amount)||0, amount:Number(newExp.amount)||l[i].amount};
+  saveFixed(l);
+}
+
 function unmarkFixed(id){
   const l = getFixed();
   const i = l.findIndex(x=>x.id===id);
@@ -8000,7 +8207,25 @@ function fixedSummary(){
   };
 }
 
+// Autocuración: un gasto fijo marcado por un egreso que ya no existe (porque
+// se borró por un camino viejo que no lo desmarcaba) vuelve a pendiente.
+function healFixedLinks(){
+  const l = getFixed();
+  if(!l.some(f=>f.paidDate && f.paidExpenseId)) return;
+  const ids = new Set(getExpenses().map(e=>e.id));
+  let cambio = false;
+  const nueva = l.map(f=>{
+    if(f.paidDate && f.paidExpenseId && f.paidHow!=='manual' && !ids.has(f.paidExpenseId)){
+      cambio = true;
+      return {...f, paidDate:null, paidAmount:null, paidExpenseId:null, paidHow:null};
+    }
+    return f;
+  });
+  if(cambio) saveFixed(nueva);
+}
+
 function refreshFixedTile(){
+  healFixedLinks();
   const sub = document.getElementById('nt-fixed-sub');
   const bar = document.getElementById('nt-fixed-bar');
   if(!sub || !bar) return;
@@ -8062,6 +8287,7 @@ function fixedRowHTML(f){
 function renderFixed(){
   const body = document.getElementById('fixed-body');
   if(!body) return;
+  healFixedLinks();
   const all = getFixed();
 
   if(!all.length){
